@@ -1,0 +1,21 @@
+name: chicory-py312
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - patch
+  - pip
+  - graphviz
+  - pip:
+    - pandas
+    - hls4ml==0.8.0
+    - matplotlib
+    - scikit-learn
+    - tensorflow
+    - qkeras
+    - conifer
+    - colorlog
+    - psutil
+    - tables
+    - pydot
+    - pyyaml
