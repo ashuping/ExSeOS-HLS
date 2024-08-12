@@ -36,7 +36,7 @@ class Either[A, B](ABC):
     def is_right(self) -> bool:
         ''' Return True if this Either is a Right; otherwise, return False.
         '''
-        ...
+        ... # pragma: no cover
 
     @property
     @abstractmethod
@@ -45,7 +45,7 @@ class Either[A, B](ABC):
 
             @warning Raises a TypeError if called on a Left.
         '''
-        ...
+        ... # pragma: no cover
 
     @property
     @abstractmethod
@@ -54,7 +54,7 @@ class Either[A, B](ABC):
 
             @warning Raises a TypeError if called on a Right.
         '''
-        ...
+        ... # pragma: no cover
 
     @abstractmethod
     def map(self, f: Callable[[B], C]) -> 'Either[A, C]':
@@ -64,14 +64,14 @@ class Either[A, B](ABC):
             If it is a Left, do not call `f` and just return a Left() of the
             lval.
         '''
-        ...
+        ... # pragma: no cover
 
     @abstractmethod
     def flat_map(self, f: Callable[[B], 'Either[A, C]']) -> 'Either[A, C]':
         ''' Similar to Map, except that `f` should convert `B`'s directly into
             an `Either`.
         '''
-        ...
+        ... # pragma: no cover
 
     def __eq__(self, other) -> bool:
         ''' Returns True iff both Eithers being compared are the same type (i.e.

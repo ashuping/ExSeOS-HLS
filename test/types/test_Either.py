@@ -26,6 +26,13 @@ def test_equals():
 	assert Right(12) != Right("12")
 
 	assert Right(12) != Left(12)
+	assert Left(12)  != Right(12)
+
+def test_str():
+	assert str(Left(12))      == "Left[int](12)"
+	assert str(Left("test"))  == "Left[str](test)"
+	assert str(Right(12))     == "Right[int](12)"
+	assert str(Right("test")) == "Right[str](test)"
 
 def test_map_right():
 	transform = lambda x: f"my {x}"
