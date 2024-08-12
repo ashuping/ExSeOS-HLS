@@ -34,4 +34,4 @@ class Workflow:
 
         self.seq = args
 
-    def run
+    
