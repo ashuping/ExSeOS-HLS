@@ -34,7 +34,7 @@ class Option[A](ABC):
     def has_val(self) -> bool:
         ''' Return True if this is `Some[A]`; otherwise, return False.
         '''
-        ...
+        ... # pragma: no cover
 
     @property
     @abstractmethod
@@ -43,7 +43,7 @@ class Option[A](ABC):
 
             @warning Raises a TypeError if called on `Nothing`.
         '''
-        ...
+        ... # pragma: no cover
 
     @abstractmethod
     def map(self, f: Callable[[A], B]) -> 'Option[B]':
@@ -52,7 +52,7 @@ class Option[A](ABC):
 
             If it is `Nothing`, do not call `f` and just return `Nothing`.
         '''
-        ...
+        ... # pragma: no cover
 
     @abstractmethod
     def flat_map(self, f: Callable[[A], 'Option[B]']) -> 'Option[B]':
@@ -60,7 +60,19 @@ class Option[A](ABC):
             `Option[B]`'s.
         
         '''
-        ...
+        ... # pragma: no cover
+
+    def __eq__(self, other):
+        if self.has_val:
+            if other.has_val:
+                return self.val == other.val
+            else:
+                return False
+        else:
+            if other.has_val:
+                return False
+            else:
+                return True
 
 class Nothing(Option):
     @property
@@ -76,6 +88,9 @@ class Nothing(Option):
     
     def flat_map(self, f: Callable[[A], Option[B]]) -> Option[B]:
         return self
+
+    def __str__(self):
+        return f'Nothing'
 
 class Some[A](Option):
     def __init__(self, val: A):
@@ -94,3 +109,6 @@ class Some[A](Option):
     
     def flat_map(self, f: Callable[[A], Option[B]]) -> Option[B]:
         return f(self.__val)
+
+    def __str__(self):
+        return f'Some[{self.val.__class__.__name__}]({self.val})'
