@@ -42,6 +42,16 @@ def test_eq():
 
 	assert Nothing()    == Nothing()
 
+def test_exc_eq():
+	# ExSeOS-H monads use `ComparableError` to enable comparison of Exceptions
+	# by value. Exceptions of the same type with the same args are treated as
+	# equal for the purpose of comparing monads.
+	assert Some(TypeError("test")) == Some(TypeError("test"))
+	assert Some(TypeError("test")) != Some(TypeError("test2"))
+	assert Some(TypeError("test")) != Some(ArithmeticError("test"))
+	assert Some(TypeError("test")) != Nothing()
+	assert Nothing()               != Some(TypeError("test"))
+
 def test_map_some():
 	transform = lambda x: f"my {x}"
 

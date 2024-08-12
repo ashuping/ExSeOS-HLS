@@ -16,6 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
+from modules.types.ComparableError import ComparableError
+
 from typing import TypeVar, Callable
 from abc import ABC, abstractmethod
 
@@ -81,12 +83,12 @@ class Either[A, B](ABC):
             if not other.is_right:
                 return False
             
-            return self.val == other.val
+            return ComparableError.encapsulate(self.val) == ComparableError.encapsulate(other.val)
         else:
             if other.is_right:
                 return False
 
-            return self.lval == other.lval
+            return ComparableError.encapsulate(self.lval) == ComparableError.encapsulate(other.lval)
 
 
 

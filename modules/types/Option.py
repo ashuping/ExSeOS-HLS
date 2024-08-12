@@ -16,6 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
+from modules.types.ComparableError import ComparableError
+
 from typing import TypeVar, Callable
 from abc import ABC, abstractmethod
 
@@ -65,7 +67,7 @@ class Option[A](ABC):
     def __eq__(self, other):
         if self.has_val:
             if other.has_val:
-                return self.val == other.val
+                return ComparableError.encapsulate(self.val) == ComparableError.encapsulate(other.val)
             else:
                 return False
         else:

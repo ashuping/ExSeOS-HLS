@@ -84,6 +84,20 @@ def test_flat_map_left_to_right():
 	assert Left("str").flat_map(transform) == Left("str")
 	assert Left(12).flat_map(transform)    == Left(12)
 
+def test_exception_comparison():
+	# Exceptions use ComparableError's __eq__ operator to allow comparison by
+	# value.
+	assert Left(TypeError("test")) == Left(TypeError("test"))
+	assert Left(TypeError("test")) != Left(TypeError("test2"))
+	assert Left(TypeError("test")) != Left(ArithmeticError("test"))
+
+	assert Right(TypeError("test")) == Right(TypeError("test"))
+	assert Right(TypeError("test")) != Right(TypeError("test2"))
+	assert Right(TypeError("test")) != Right(ArithmeticError("test"))
+
+	assert Right(TypeError("test")) != Left(TypeError("test"))
+	assert Left(TypeError("test"))  != Right(TypeError("test"))
+
 def test_flat_map_long_chain():
 	assert Right("str").flat_map(
 		lambda x: Right(f"precious {x}")
