@@ -73,6 +73,22 @@ class Either[A, B](ABC):
         '''
         ...
 
+    def __eq__(self, other) -> bool:
+        ''' Returns True iff both Eithers being compared are the same type (i.e.
+            both Left or both Right) AND the relevant inner values are the same.
+        '''
+        if self.is_right:
+            if not other.is_right:
+                return False
+            
+            return self.val == other.val
+        else:
+            if other.is_right:
+                return False
+
+            return self.lval == other.lval
+
+
 
 class Left[A](Either):
     def __init__(self, val: A):
@@ -110,7 +126,7 @@ class Right[B](Either):
     
     @property
     def val(self) -> B:
-        raise self.__rval
+        return self.__rval
     
     @property
     def lval(self) -> A:
