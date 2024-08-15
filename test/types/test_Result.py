@@ -67,9 +67,13 @@ def test_eq():
 	assert Okay(37) != Error([SyntaxError()], [ArithmeticError(6)])
 
 	assert Warning([ArithmeticError(6)], 37) != Okay(37)
+	assert Warning([ArithmeticError(6)], 37) != Warning([ArithmeticError(6), SyntaxError("test")], 37)
 	assert Warning([ArithmeticError(6)], 37) != Error([SyntaxError()], [ArithmeticError(6)])
 
 	assert Error([SyntaxError()], [ArithmeticError(6)]) != Okay(37)
+	assert Error([SyntaxError()], [ArithmeticError(6)]) != Error([SyntaxError()], [])
+	assert Error([SyntaxError()], [ArithmeticError(6)]) != Error([], [ArithmeticError(6)])
+	assert Error([SyntaxError()], [ArithmeticError(6)]) != Error([], [])
 	assert Error([SyntaxError()], [ArithmeticError(6)]) != Warning([ArithmeticError(6)], 37)
 
 def test_okay_rshift():
@@ -182,7 +186,9 @@ def test_str():
 		[ArithmeticError(6), TypeError("wow")],
 		37
 	)) == 'Warning[int](37) with the following warnings:\n    > [ArithmeticError] 6\n    > [TypeError] wow\n'
+	assert str(Warning([], 37)) == 'Warning[int](37) with no warnings'
 	assert str(Error(
 		[SyntaxError("test"), OSError("awa")],
 		[ArithmeticError(6), TypeError("wow")]
 	)) == 'Error with the following warnings:\n    > [ArithmeticError] 6\n    > [TypeError] wow\n and the following errors:\n    > [SyntaxError] test\n    > [OSError] awa\n'
+	assert str(Error([], [])) == 'Error with no warnings and no errors'
