@@ -16,6 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
+from modules.types.ComparableError import ComparableError
+
 from typing import TypeVar, Callable, List
 from abc import ABC, abstractmethod
 
@@ -43,20 +45,20 @@ class Result[A, B, C](ABC):
     @abstractmethod
     def is_okay(self) -> bool: 
         # True IFF the result is `Okay`.
-        ...
+        ... # pragma: no cover
 
 
     @property
     @abstractmethod
     def is_warning(self) -> bool: 
         # True IFF the result is `Warning`
-        ...
+        ... # pragma: no cover
 
     @property
     @abstractmethod
     def is_error(self) -> bool: 
         # True IFF the result is `Error`
-        ...
+        ... # pragma: no cover
 
     @property
     @abstractmethod
@@ -66,7 +68,7 @@ class Result[A, B, C](ABC):
             This is present for `Okay` and `Warning` types. It is NOT present
             for `Error` types.
         '''
-        ...
+        ... # pragma: no cover
 
     @property
     @abstractmethod
@@ -76,7 +78,7 @@ class Result[A, B, C](ABC):
             This is present for `Warning` and `Error` types. It is NOT present
             for `Okay` types.
         '''
-        ...
+        ... # pragma: no cover
 
     @property
     @abstractmethod
@@ -85,22 +87,61 @@ class Result[A, B, C](ABC):
 
             This is only present for `Error` types.
         '''
-        ...
+        ... # pragma: no cover
 
     @abstractmethod
     def map(self, f: Callable[[C], D]) -> 'Result[A, B, D]':
         ''' If this `Result` is `Okay` or `Warning`, call `f` on its value and
             return an `Okay` or `Warning` of the result.        
         '''
-        ...
+        ... # pragma: no cover
 
     @abstractmethod
     def flat_map(self, f: Callable[[C], 'Result[A, B, D]']) -> 'Result[A, B, D]':
         ''' If this `Result` is `Okay` or `Warning`, call `f` on its value and
             return the output, which must itself be a `Result`.
         '''
-        ...
+        ... # pragma: no cover
 
+    def __eq__(self, other):
+        if self.is_okay:
+            if not other.is_okay:
+                return False
+
+            return self.val == other.val
+
+        elif self.is_warning:
+            if not other.is_warning:
+                return False
+
+            if self.val != other.val:
+                return False
+            
+            if len(self.warnings) != len(other.warnings):
+                return False
+
+            if ComparableError.array_encapsulate(self.warnings) != ComparableError.array_encapsulate(other.warnings):
+                return False
+
+            return True
+
+        else: # self.is_error
+            if not other.is_error:
+                return False
+
+            if len(self.warnings) != len(other.warnings):
+                return False
+
+            if len(self.errors) != len(other.errors):
+                return False
+
+            if ComparableError.array_encapsulate(self.warnings) != ComparableError.array_encapsulate(other.warnings):
+                return False
+
+            if ComparableError.array_encapsulate(self.errors) != ComparableError.array_encapsulate(other.errors):
+                return False
+
+            return True
 
 
 class Okay[C](Result):
