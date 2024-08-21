@@ -1,4 +1,4 @@
-name: chicory-py312
+name: exseos-h
 channels:
   - conda-forge
 dependencies:
