@@ -104,6 +104,9 @@ class Result[A, B, C](ABC):
         ... # pragma: no cover
 
     def __eq__(self, other):
+        if not issubclass(type(other), Result):
+            return False
+
         if self.is_okay:
             if not other.is_okay:
                 return False

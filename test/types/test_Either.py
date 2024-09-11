@@ -20,10 +20,12 @@ def test_equals():
 	assert Left(12) == Left(12)
 	assert Left(12) != Left(13)
 	assert Left(12) != Left("12")
+	assert Left(12) != 12
 
 	assert Right(12) == Right(12)
 	assert Right(12) != Right(13)
 	assert Right(12) != Right("12")
+	assert Right(12) != 12
 
 	assert Right(12) != Left(12)
 	assert Left(12)  != Right(12)

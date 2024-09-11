@@ -53,6 +53,9 @@ class Option[A](ABC):
             of the result.
 
             If it is `Nothing`, do not call `f` and just return `Nothing`.
+
+            :param: f: A function that takes an `A` and converts it to a `B`
+            :returns: `Some(f(a))` if this Option is `Some(a)`, else `Nothing()`
         '''
         ... # pragma: no cover
 
@@ -60,11 +63,16 @@ class Option[A](ABC):
     def flat_map(self, f: Callable[[A], 'Option[B]']) -> 'Option[B]':
         ''' Similar to Map, except that `f` should convert `A`'s directly into
             `Option[B]`'s.
-        
+
+            :param f: A function that takes an `A` and converts it to an
+                `Option[B]`
+            :returns: `f(a)` if this `Option` is `Some(a)`, else `Nothing()`        
         '''
         ... # pragma: no cover
 
     def __eq__(self, other):
+        if not issubclass(type(other), Option):
+            return False
         if self.has_val:
             if other.has_val:
                 return ComparableError.encapsulate(self.val) == ComparableError.encapsulate(other.val)
@@ -77,6 +85,7 @@ class Option[A](ABC):
                 return True
 
 class Nothing(Option):
+    ''' Represents an empty `Option`.'''
     @property
     def has_val(self) -> bool:
         return False
@@ -95,6 +104,7 @@ class Nothing(Option):
         return f'Nothing'
 
 class Some[A](Option):
+    ''' Represents an `Option` that contains a concrete value. '''
     def __init__(self, val: A):
         self.__val = val
 

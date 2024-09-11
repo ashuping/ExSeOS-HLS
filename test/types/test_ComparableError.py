@@ -21,6 +21,7 @@ def test_eq():
 	assert ComparableError(TypeError("test")) == ComparableError(TypeError("test"))
 	assert ComparableError(TypeError("test")) != ComparableError(TypeError("test2"))
 	assert ComparableError(TypeError("test")) != ComparableError(ArithmeticError("test"))
+	assert ComparableError(TypeError("test")) != "test"
 
 def test_auto_encapsulate():
 	assert ComparableError(TypeError("test")) == TypeError("test")

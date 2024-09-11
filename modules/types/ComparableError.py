@@ -58,6 +58,10 @@ class ComparableError:
 					- The two `args` attributes evaluate to equal.
 		'''
 		other = ComparableError.encapsulate(other) # ensure `other` is comparable
+
+		if type(other) != ComparableError:
+			return False
+
 		if type(self.exc) != type(other.exc):
 			return False
 

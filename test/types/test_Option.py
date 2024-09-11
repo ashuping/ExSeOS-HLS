@@ -29,6 +29,7 @@ def test_eq():
 	assert Some(None)   == Some(None)
 	
 	assert Some(37)     != Some(36)
+	assert Some(37)     != 37
 	assert Some("test") != Some("tes")
 	assert Some(37)     != Some("37")
 
@@ -39,6 +40,7 @@ def test_eq():
 	assert Nothing()    != Some(37)
 	assert Nothing()    != Some("test")
 	assert Nothing()    != Some(None)
+	assert Nothing()    != None
 
 	assert Nothing()    == Nothing()
 

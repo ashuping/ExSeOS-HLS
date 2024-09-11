@@ -76,11 +76,18 @@ class Variable[A](ABC):
 	@abstractmethod
 	def bind(self, val: A) -> 'BoundVariable[A]':
 		''' Bind a value to this Variable. 
-		
-			This only works for unbound Variables; otherwise, a TypeError will
-			be raised.
 		'''
 		... # pragma: no cover
+
+	def __eq__(self, other: 'Variable') -> bool:
+		return all([
+			self.name == other.name,
+			self.is_bound == other.is_bound,
+			self.desc == other.desc,
+			(self.val == other.val) if self.is_bound else True,
+			self.var_type == other.var_type,
+			self.default == other.default
+		])
 
 class BoundVariable[A](Variable):
 	''' A Variable that has already been given a value.
@@ -116,11 +123,26 @@ class BoundVariable[A](Variable):
 	def default(self) -> Option[A]:
 		return self.__default
 
+	def bind(self, val: A) -> 'BoundVariable[A]':
+		return BoundVariable(
+			self.name, val, self.var_type, self.desc, self.default
+		)
+
+	def __str__(self) -> str:
+		return ''.join([
+			'BoundVariable',
+			f'[{self.var_type.val.__name__}]' if self.var_type != Nothing() else '',
+			f' {self.name}',
+			f' = {self.val}',
+			f' (default {self.default.val})' if self.default != Nothing() else '',
+			f': {self.desc.val}' if self.desc != Nothing() else ''
+		])
+
 
 class UnboundVariable[A](Variable):
 	''' A Variable which has not yet been given a value.
 	'''
-	def __init__(self, name: str, var_type: Option[type], desc: Option[str] = Nothing(), default: Option[A] = Nothing()):
+	def __init__(self, name: str, var_type: Option[type] = Nothing(), desc: Option[str] = Nothing(), default: Option[A] = Nothing()):
 		self.__name    = name
 		self.__type    = var_type
 		self.__desc    = desc
@@ -149,3 +171,17 @@ class UnboundVariable[A](Variable):
 	@property
 	def default(self) -> Option[A]:
 		return self.__default
+
+	def bind(self, val: A) -> BoundVariable[A]:
+		return BoundVariable(
+			self.name, val, self.var_type, self.desc, self.default
+		)
+
+	def __str__(self) -> str:
+		return ''.join([
+			'UnboundVariable',
+			f'[{self.var_type.val.__name__}]' if self.var_type != Nothing() else '',
+			f' {self.name}',
+			f' (default {self.default.val})' if self.default != Nothing() else '',
+			f': {self.desc.val}' if self.desc != Nothing() else ''
+		])

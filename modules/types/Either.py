@@ -79,6 +79,9 @@ class Either[A, B](ABC):
         ''' Returns True iff both Eithers being compared are the same type (i.e.
             both Left or both Right) AND the relevant inner values are the same.
         '''
+        if not issubclass(type(other), Either):
+            return False
+
         if self.is_right:
             if not other.is_right:
                 return False

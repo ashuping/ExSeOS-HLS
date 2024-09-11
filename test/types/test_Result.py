@@ -51,17 +51,27 @@ def test_eq():
 
 	assert Okay(37) != Okay(36)
 	assert Okay(37) != Okay("37")
+	assert Okay(37) != 37
 
 	assert Warning([ArithmeticError(6)], 37) != Warning([ArithmeticError(6)], 36)
 	assert Warning([ArithmeticError(6)], 37) != Warning([ArithmeticError(6)], "37")
 	assert Warning([ArithmeticError(6)], 37) != Warning([SyntaxError(6)], 37)
 	assert Warning([ArithmeticError(6)], 37) != Warning([ArithmeticError(5)], 37)
+	assert Warning([ArithmeticError(6)], 37) != 37
+	assert Warning([], 37) != 37
+	assert Warning([ArithmeticError(6)], 37) != ArithmeticError(6)
 
 	assert Error([SyntaxError("test")], [ArithmeticError(6)]) != Error([SyntaxError("test")], [ArithmeticError(5)])
 	assert Error([SyntaxError("test")], [ArithmeticError(6)]) != Error([ArithmeticError(6)], [SyntaxError("test")])
 	assert Error([SyntaxError("test")], [ArithmeticError(6)]) != Error([SyntaxError("test")], [ArithmeticError(5)])
 	assert Error([SyntaxError("test")], [ArithmeticError(6)]) != Error([SyntaxError("test")], [ArithmeticError("6")])
 	assert Error([SyntaxError("test")], [ArithmeticError(6)]) != Error([SyntaxError("test2")], [ArithmeticError(6)])
+	assert Error([SyntaxError("test")], [ArithmeticError(6)]) != SyntaxError("test")
+	assert Error([SyntaxError("test")], [ArithmeticError(6)]) != [SyntaxError("test")]
+	assert Error([SyntaxError("test")], [ArithmeticError(6)]) != "test"
+	assert Error([SyntaxError("test")], [ArithmeticError(6)]) != ArithmeticError(6)
+	assert Error([SyntaxError("test")], [ArithmeticError(6)]) != [ArithmeticError(6)]
+	assert Error([SyntaxError("test")], [ArithmeticError(6)]) != 6
 
 	assert Okay(37) != Warning([ArithmeticError(6)], 37)
 	assert Okay(37) != Error([SyntaxError()], [ArithmeticError(6)])
