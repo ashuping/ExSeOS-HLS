@@ -15,12 +15,16 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
-from modules.types.Option import Option, Nothing
+from modules.types import common
+from modules.types.Option import Option, Nothing, Some
 
-from typing import TypeVar
 from abc import ABC, abstractmethod
+import logging
+from typing import TypeVar
 
 A = TypeVar("A")
+
+log = logging.getLogger(__name__)
 
 class Variable[A](ABC):
 	''' Stores a quantity whose value can vary from workflow to workflow,
@@ -68,6 +72,14 @@ class Variable[A](ABC):
 
 	@property
 	@abstractmethod
+	def var_type_inferred(self) -> bool:
+		''' True if `var_type` was automatically inferred (and thus potentially
+		    inaccurate); False if it was explicitly provided.
+		'''
+		... # pragma: no cover
+
+	@property
+	@abstractmethod
 	def default(self) -> Option[A]:
 		''' Optional default value for this Variable.
 		'''
@@ -95,9 +107,34 @@ class BoundVariable[A](Variable):
 	def __init__(self, name: str, val: A, var_type: Option[type] = Nothing(), desc: Option[str] = Nothing(), default: Option[A] = Nothing()):
 		self.__name = name
 		self.__val = val
-		self.__type = var_type
 		self.__desc = desc
 		self.__default = default
+
+		if var_type == Nothing():
+			if default == Nothing():
+				# Infer type from `val`
+				self.__type = Some(type(val))
+				self.__inferred = True
+				log.warning(f'Inferred type {self.__type} from val {val} for BoundVariable {name}.')
+			else:
+				# Try to find a common type between `val` and `default`
+				ctype = common(val, default.val)
+				if ctype.is_okay:
+					log.warning(f'Inferred type {ctype.val} from val {val} and default {default.val} for BoundVariable {name}')
+					self.__type = Some(ctype.val)
+					self.__inferred = True
+				elif ctype.is_warning:
+					log.warning(f'Tried to infer type for BoundVariable {name} from val {val} and default {default.val}, but resultant type {ctype.val} seems overly broad. Using it anyway.')
+					self.__type = Some(ctype.val)
+					self.__inferred = True
+				else:
+					log.warning(f'Failed to infer type for BoundVariable {name} - val ({val}) and default ({default.val}) have no types in common!')
+					self.__type = Nothing()
+					self.__inferred = False
+		else:
+			# Type was explicitly provided
+			self.__type = var_type
+			self.__inferred = False
 
 	@property
 	def is_bound(self) -> bool:
@@ -118,6 +155,10 @@ class BoundVariable[A](Variable):
 	@property
 	def var_type(self) -> Option[type]:
 		return self.__type
+
+	@property
+	def var_type_inferred(self) -> bool:
+		return self.__inferred
 
 	@property
 	def default(self) -> Option[A]:
@@ -144,9 +185,20 @@ class UnboundVariable[A](Variable):
 	'''
 	def __init__(self, name: str, var_type: Option[type] = Nothing(), desc: Option[str] = Nothing(), default: Option[A] = Nothing()):
 		self.__name    = name
-		self.__type    = var_type
 		self.__desc    = desc
 		self.__default = default
+
+		if var_type == Nothing():
+			if default != Nothing():
+				log.warning(f'Inferred type {type(default.val)} from default {default.val} for UnboundVariable {name}')
+				self.__type = Some(type(default.val))
+				self.__inferred = True
+			else:
+				self.__type = Nothing()
+				self.__inferred = False
+		else:
+			self.__type = var_type
+			self.__inferred = False
 
 	@property
 	def is_bound(self) -> bool:
@@ -167,6 +219,10 @@ class UnboundVariable[A](Variable):
 	@property
 	def var_type(self) -> Option[type]:
 		return self.__type
+
+	@property
+	def var_type_inferred(self) -> bool:
+		return self.__inferred
 
 	@property
 	def default(self) -> Option[A]:
