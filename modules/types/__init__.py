@@ -25,38 +25,38 @@ class BroadCommonTypeWarning(Exception):
 	''' Used when looking for common types. When the common type between two
 	    values is extremely broad (e.g. `object`), this warning is given.
 	'''
-	def __init__(self, objs: list[any], common: type, note: str = ''):
+	def __init__(self, types: list[any], common: type, note: str = ''):
 		''' Construct a BroadCommonTypeWarning.
 
-			:param objs: List of objects that triggered this warning.
+			:param types: List of types that triggered this warning.
 			:param common: The common type that triggered this warning.
 			:param note: Further information about this warning.
 		'''
-		obj_str = '<no objects provided>' if len(objs) == 0 \
-			else str(objs[0])             if len(objs) == 1 \
-			else ', '.join([str(o) for o in objs[:-1]]) + ' and ' + str(objs[-1])
+		type_str = '<no types provided>' if len(types) == 0 \
+			else f'`{types[0].__name__}`'    if len(types) == 1 \
+			else ', '.join([f'`{o.__name__}`' for o in types[:-1]]) + ' and ' + f'`{types[-1].__name__}`'
 
-		super().__init__(f'Objects {obj_str} only share the broad common type {common.__name__}.{(" " + note) if note else ""}')
+		super().__init__(f'Types {type_str} only share the broad common type `{common.__name__}`.{(" " + note) if note else ""}')
 
-		self.objs = objs
+		self.types = types
 		self.common = common
 		self.note = note
 
 
 class NoCommonTypeError(Exception):
-	def __init__(self, objs: list[any], note: str = ''):
+	def __init__(self, types: list[any], note: str = ''):
 		''' Construct a NoCommonTypeError
 
-			:param objs: List of objects that triggered this error
+			:param types: List of types that triggered this error
 			:param note: Further information about this error
 		'''
-		obj_str = '<no objects provided>' if len(objs) == 0 \
-			else str(objs[0])             if len(objs) == 1 \
-			else ', '.join([str(o) for o in objs[:-1]]) + ' and ' + str(objs[-1])
+		type_str = '<no types provided>' if len(types) == 0 \
+			else f'`{types[0].__name__}`'    if len(types) == 1 \
+			else ', '.join([f'`{o.__name__}`' for o in types[:-1]]) + ' and ' + f'`{types[-1].__name__}`'
 
-		super().__init__(f'Objects {obj_str} do not share a common type.{(" " + note) if note else ""}')
+		super().__init__(f'Types {type_str} do not share a common type.{(" " + note) if note else ""}')
 
-		self.objs = objs
+		self.types = types
 		self.note = note
 
 
@@ -93,12 +93,14 @@ def common_t(a: type, b: type) -> Result[Exception, Exception, type]:
 
 	def _candidate_search(a, b, ignore_broad=True):
 		# Search `a` to find common ancestors of `b`
-		BROAD_CLASSES = [object, ABC, type, Generic]
+		BROAD_CLASSES = [ABC, type, Generic]
 		candidate = None
 		superclasses = a.__bases__
 		while candidate is None and len(superclasses) > 0:
 			next_cycle_superclasses = []
 			for scls in superclasses:
+				if scls is object:
+					continue
 				if issubclass(b, scls) and (scls not in BROAD_CLASSES or ignore_broad == False):
 					candidate = scls
 					break

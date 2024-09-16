@@ -64,5 +64,5 @@ def test_type_inference_uses_common_ancestors():
 	# BoundVariables should choose the closest common ancestor of `val` and `default` when performing type inference.
 	assert BoundVariable('x', TestSubclass1(), default=Some(TestSubclass2())).var_type == Some(TestSuperclass)
 
-	# Sometimes, the closest common ancestor is `object`.
-	assert BoundVariable('x', TestSubclass1(), default=Some(1)).var_type == Some(object)
+	# If the only common ancestor is `object`, reject the inferred type.
+	assert BoundVariable('x', TestSubclass1(), default=Some(1)).var_type == Nothing()
