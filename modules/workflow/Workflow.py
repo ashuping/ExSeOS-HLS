@@ -70,7 +70,7 @@ class MakeWorkflow():
 
 		for kwarg, kwdefault in kwargs.items():
 			self.inputs.append(UnboundVariable(
-				arg,
+				kwarg,
 				default=Some(kwdefault)
 			))
 
