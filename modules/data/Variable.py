@@ -106,7 +106,7 @@ class BoundVariable[A](Variable):
 	'''
 	def __init__(self, name: str, val: A, var_type: Option[type] = Nothing(), desc: Option[str] = Nothing(), default: Option[A] = Nothing()):
 		self.__name = name
-		self.__val = Option.make_from(val)
+		self.__val = val
 		self.__desc = Option.make_from(desc)
 		self.__default = Option.make_from(default)
 
