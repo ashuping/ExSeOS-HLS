@@ -101,7 +101,7 @@ class Stage(ABC):
 			:returns: A `StageResult` containing output `Variable`s for this
 			    `Stage`.
 		'''
-		...
+		... # pragma: no cover
 
 	@property
 	def _input_bindings(self) -> list[Variable]:
