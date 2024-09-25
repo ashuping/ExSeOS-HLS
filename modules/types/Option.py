@@ -70,6 +70,18 @@ class Option[A](ABC):
         '''
         ... # pragma: no cover
 
+    @staticmethod
+    def make_from(obj: any) -> 'Option[A]':
+        ''' Convenience method to ensure an object is an Option. If `obj` is
+            already an Option, it is returned as-is. If `obj` is None, it is
+            converted to `Nothing()`. Otherwise, it is converted to `Some(obj)`
+
+            :param obj: The object to encapsulate
+            :returns: `obj` if `obj` is an Option; otherwise, `Some(obj)` if obj
+                is not None; otherwise, `Nothing()`.
+        '''
+        ... # pragma: no cover
+
     def __eq__(self, other):
         if not issubclass(type(other), Option):
             return False
@@ -124,3 +136,17 @@ class Some[A](Option):
 
     def __str__(self):
         return f'Some[{self.val.__class__.__name__}]({self.val})'
+    
+
+def _make_from(obj: any) -> Option[A]:
+    # The inner function has to be defined after `Some` and `Nothing`, and then
+    # injected into the Object class.
+    if issubclass(type(obj), Option):
+        return obj
+    
+    if obj is None:
+        return Nothing()
+    
+    return Some(obj)
+
+Option.make_from = _make_from

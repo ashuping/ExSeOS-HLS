@@ -123,3 +123,11 @@ def test_flat_map_and_map_long_chain():
 		.flat_map(tf_invert) \
 		.map(tf_stringify) == Nothing(), \
 		"`map` should be skipped, since `tf_invert` returns Nothing()."
+
+def test_make_from():
+	assert Option.make_from(1)       == Some(1)
+	assert Option.make_from(Some(1)) == Some(1)
+
+	assert Option.make_from(Nothing())  == Nothing()
+	assert Option.make_from(None)       == Nothing()
+	assert Option.make_from(Some(None)) == Some(None)

@@ -106,9 +106,9 @@ class BoundVariable[A](Variable):
 	'''
 	def __init__(self, name: str, val: A, var_type: Option[type] = Nothing(), desc: Option[str] = Nothing(), default: Option[A] = Nothing()):
 		self.__name = name
-		self.__val = val
-		self.__desc = desc
-		self.__default = default
+		self.__val = Option.make_from(val)
+		self.__desc = Option.make_from(desc)
+		self.__default = Option.make_from(default)
 
 		if var_type == Nothing():
 			if default == Nothing():
@@ -185,8 +185,8 @@ class UnboundVariable[A](Variable):
 	'''
 	def __init__(self, name: str, var_type: Option[type] = Nothing(), desc: Option[str] = Nothing(), default: Option[A] = Nothing()):
 		self.__name    = name
-		self.__desc    = desc
-		self.__default = default
+		self.__desc    = Option.make_from(desc)
+		self.__default = Option.make_from(default)
 
 		if var_type == Nothing():
 			if default != Nothing():
