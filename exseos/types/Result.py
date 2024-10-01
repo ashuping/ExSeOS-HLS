@@ -1,5 +1,5 @@
 """
-Chicory ML Workflow Manager
+ExSeOS-H Hardware ML Workflow Manager
 Copyright (C) 2024  Alexis Maya-Isabelle Shuping
 
 This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from modules.types.ComparableError import ComparableError
+from exseos.types.ComparableError import ComparableError
 
 from typing import TypeVar, Callable, List
 from abc import ABC, abstractmethod
@@ -28,15 +28,16 @@ D = TypeVar("D")
 
 
 class Result[A, B, C](ABC):
-	"""Represents the result of a computation.
+	"""
+	Represents the result of a computation.
 
 	Can either be `Okay[C]`, `Warning[B, C]`, or `Error[A, B]`.
 
 	`val` of type `C` represents the return type of the computation. It is
 	present in `Okay` and `Warning` types, but not `Error` types.
 
-	`warn` of type `B` represents non-fatal warnings. It is present in
-	`Warning` and `Error` types, but not `Okay` types.
+	`warn` of type `B` represents non-fatal warnings. It is present in `Warning`
+	and `Error` types, but not `Okay` types.
 
 	`err` of type `A` represents fatal errors. It is only present in `Error`
 	types.
@@ -63,42 +64,53 @@ class Result[A, B, C](ABC):
 	@property
 	@abstractmethod
 	def val(self) -> C:
-		"""Return the result of the computation.
+		"""
+		Return the result of the computation.
 
-		This is present for `Okay` and `Warning` types. It is NOT present
-		for `Error` types.
+		This is present for `Okay` and `Warning` types. It is NOT present for
+		`Error` types.
+		
+		:raises TypeError: if called on an `Error`
 		"""
 		...  # pragma: no cover
 
 	@property
 	@abstractmethod
 	def warnings(self) -> List[B]:
-		"""Return the list of warnings generated during the computation.
+		"""
+		Return the list of warnings generated during the computation.
 
-		This is present for `Warning` and `Error` types. It is NOT present
-		for `Okay` types.
+		This is present for `Warning` and `Error` types. It is NOT present for
+		`Okay` types.
+
+		:raises TypeError: if called on an `Okay`
 		"""
 		...  # pragma: no cover
 
 	@property
 	@abstractmethod
 	def errors(self) -> List[A]:
-		"""Return the list of fatal errors generated during the computation.
+		"""
+		Return the list of fatal errors generated during the computation.
 
 		This is only present for `Error` types.
+
+		:raises TypeError: if called on an `Okay` or `Warning`
 		"""
 		...  # pragma: no cover
 
 	@abstractmethod
 	def map(self, f: Callable[[C], D]) -> "Result[A, B, D]":
-		"""If this `Result` is `Okay` or `Warning`, call `f` on its value and
+		"""
+		If this `Result` is `Okay` or `Warning`, call `f` on its value and
 		return an `Okay` or `Warning` of the result.
 		"""
 		...  # pragma: no cover
 
 	@abstractmethod
 	def flat_map(self, f: Callable[[C], "Result[A, B, D]"]) -> "Result[A, B, D]":
-		"""If this `Result` is `Okay` or `Warning`, call `f` on its value and
+		"""
+		If this `Result` is `Okay` or `Warning`, call `f` on its value and
 		return the output, which must itself be a `Result`.
 		"""
 		...  # pragma: no cover
@@ -154,7 +166,8 @@ class Result[A, B, C](ABC):
 
 
 class Okay[C](Result):
-	"""Represents a computation that has succeeded without any errors or warnings.
+	"""
+	Represents a computation that has succeeded without any errors or warnings.
 
 	Has a `val`, but no `warnings` or `errors`
 	"""
@@ -197,7 +210,8 @@ class Okay[C](Result):
 
 
 class Warning[B, C](Result):
-	"""Represents a computation that encountered non-fatal errors.
+	"""
+	Represents a computation that encountered non-fatal errors.
 
 	Has a `val` and `warnings`, but no `errors`
 	"""
@@ -247,7 +261,8 @@ class Warning[B, C](Result):
 
 
 class Error[A, B](Result):
-	"""Represents a computation which failed with errors.
+	"""
+	Represents a computation which failed with errors.
 
 	Has `warnings` and `errors`, but no `val`.
 	"""

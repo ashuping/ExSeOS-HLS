@@ -90,6 +90,10 @@ with spaces on your end and have `git` automatically perform the conversion to
 tabs. You might want to use `ruff` instead of `expand` for a cross-platform
 solution that will also apply the rest of the project styling on commit!
 
+Note also that, when writing docstrings, it is preferred to put the first line
+of documentation on the line *below* the opening quotes, rather than on the same
+line.
+
 We use [Ruff](https://docs.astral.sh/ruff/) for code linting and formatting. To
 check your code, run `ruff check`. To automatically format your code, run `ruff
 format`. Note that certain rules are relaxed for test cases (for example,
@@ -134,7 +138,7 @@ our test code can be found in the [`test`](blob/main/test) directory.
 We ask that you try to maximize test coverage of any code that you contribute.
 We use [Codecov](https://about.codecov.io/) to calculate coverage percentage for
 commits and pull requests. You can check the coverage locally using pytest:
-`python -m pytest test --cov-report xml:cov.xml --cov modules`
+`python -m pytest test --cov-report xml --cov exseos`
 
 This will generate an XML coverage report, which can be read by several IDE
 extensions (for example, [Coverage

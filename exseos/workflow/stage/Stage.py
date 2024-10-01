@@ -1,5 +1,5 @@
 """
-Chicory ML Workflow Manager
+ExSeOS-H Hardware ML Workflow Manager
 Copyright (C) 2024  Alexis Maya-Isabelle Shuping
 
 This program is free software: you can redistribute it and/or modify
@@ -16,8 +16,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from modules.data.Variable import Variable, UnboundVariable
-from modules.types.Option import Option, Some, Nothing
+from exseos.data.Variable import Variable, UnboundVariable
+from exseos.types.Option import Option, Some, Nothing
 
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
@@ -26,7 +26,8 @@ from abc import ABC, abstractmethod
 def _process_stage_io(
 	dex: int, i: Variable, args: list[Variable | str], kwargs: dict[str, Variable | str]
 ) -> Option[Variable]:
-	"""Match a single input (or output) from our variable list to the provided
+	"""
+	Match a single input (or output) from our variable list to the provided
 	parameters.
 
 	:param dex: Offset in our input `Variable` list for `i`
@@ -51,12 +52,12 @@ def _process_stage_io(
 
 
 class Stage(ABC):
-	"""Represents a Stage - something that can be used as a step in a Workflow.
+	"""
+	Represents a Stage - something that can be used as a step in a Workflow.
 
 	Stages are immutable - their inputs (and outputs, if applicable), do not
-	change once set. Functions modifying Stages will return a new Stage with
-	the desired modifications, rather than modifying the existing Stage
-	in-place.
+	change once set. Functions modifying Stages will return a new Stage with the
+	desired modifications, rather than modifying the existing Stage in-place.
 	"""
 
 	input_vars: tuple[UnboundVariable] = ()
@@ -68,7 +69,8 @@ class Stage(ABC):
 		_to: tuple[list[str | Variable], dict[str, str | Variable]] = ([], {}),
 		**kwargs: dict[str, str | Variable],
 	):
-		"""Create a Stage and bind its input variables.
+		"""
+		Create a Stage and bind its input variables.
 
 		All arguments should be either `Variable`s or strings. Strings are
 		automatically converted to `UnboundVariable`s. Keyword arguments are
@@ -97,13 +99,12 @@ class Stage(ABC):
 
 	@abstractmethod
 	def run(self, inputs: list[Variable]) -> "StageResult":
-		"""Run this stage, returning a StageResult containing output
-		information.
+		"""
+		Run this stage, returning a StageResult containing output information.
 
-		    :param inputs: A list of all `Variables` needed for this `Stage` to
-		 run.
-		    :returns: A `StageResult` containing output `Variable`s for this
-		 `Stage`.
+		:param inputs: A list of all `Variables` needed for this `Stage` to run.
+		:returns: A `StageResult` containing output `Variable`s for this
+		    `Stage`.
 		"""
 		...  # pragma: no cover
 
@@ -114,13 +115,15 @@ class Stage(ABC):
 
 	@property
 	def _output_bindings(self) -> Option[list[Variable]]:
-		"""An `Option`al list of Output bindings for this stage. Used for
-		internal wiring.
+		"""
+		An `Option`al list of Output bindings for this stage. Used for internal
+		wiring.
 		"""
 		return self.__outputs
 
 	def to(self, *args, **kwargs) -> "Stage":
-		"""Bind the outputs of the `Stage` to a `Variable` or name.
+		"""
+		Bind the outputs of the `Stage` to a `Variable` or name.
 
 		:param args: Outputs to be bound by position
 		:params kwargs: Outputs to be bound by name

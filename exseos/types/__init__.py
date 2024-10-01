@@ -1,5 +1,5 @@
 """
-Chicory ML Workflow Manager
+ExSeOS-H Hardware ML Workflow Manager
 Copyright (C) 2024  Alexis Maya-Isabelle Shuping
 
 This program is free software: you can redistribute it and/or modify
@@ -16,19 +16,21 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from modules.types.Result import Result, Okay, Warning, Error
+from exseos.types.Result import Result, Okay, Warning, Error
 
 from abc import ABC
 from typing import Generic
 
 
 class BroadCommonTypeWarning(Exception):
-	"""Used when looking for common types. When the common type between two
-	values is extremely broad (e.g. `object`), this warning is given.
+	"""
+	Used when looking for common types. When the common type between two values
+	is extremely broad (e.g. `object`), this warning is given.
 	"""
 
 	def __init__(self, types: list[any], common: type, note: str = ""):
-		"""Construct a BroadCommonTypeWarning.
+		"""
+		Construct a BroadCommonTypeWarning.
 
 		:param types: List of types that triggered this warning.
 		:param common: The common type that triggered this warning.
@@ -55,7 +57,8 @@ class BroadCommonTypeWarning(Exception):
 
 class NoCommonTypeError(Exception):
 	def __init__(self, types: list[any], note: str = ""):
-		"""Construct a NoCommonTypeError
+		"""
+		Construct a NoCommonTypeError
 
 		:param types: List of types that triggered this error
 		:param note: Further information about this error
@@ -79,30 +82,31 @@ class NoCommonTypeError(Exception):
 
 
 def type_check(val: any, t: type) -> bool:
-	"""Perform a basic, permissive type-check, ensuring that `val` can be
+	"""
+	Perform a basic, permissive type-check, ensuring that `val` can be
 	reasonably considered to have type `t`.
 
-	    This function is used internally for basic verification of, e.g.,
-	    `Variable` values. It considers subclasses, but it does not consider any
-	    of the more complex, type-annotation style details. For example, `t` can
-	    be a `list`, but not a `list[str]`.
+	This function is used internally for basic verification of, e.g., `Variable`
+	values. It considers subclasses, but it does not consider any of the more
+	complex, type-annotation style details. For example, `t` can be a `list`,
+	but not a `list[str]`.
 
-	    :param val: The value to check
-	    :param t: The type that `val` should have
-	    :returns: Whether `val` has type `t`
+	:param val: The value to check
+	:param t: The type that `val` should have
+	:returns: Whether `val` has type `t`
 	"""
 	return issubclass(type(val), t)
 
 
 def common_t(a: type, b: type) -> Result[Exception, Exception, type]:
-	"""As `common`, except that `a` and `b` are types rather than values.
+	"""
+	As `common`, except that `a` and `b` are types rather than values.
 
 	:param a: The first type to compare
 	:param b: The second type to compare
 	:returns: `Okay(t)` where `t` is the most specific common type, or
-	    `Warning(BroadCommonTypeWarning, t)` if the common type is too
-	    broad, or `Error(NoCommonTypeError)` if there is no common type at
-	    all.
+	    `Warning(BroadCommonTypeWarning, t)` if the common type is too broad, or
+	    `Error(NoCommonTypeError)` if there is no common type at all.
 	"""
 	if issubclass(b, a):
 		return Okay(a)
@@ -143,22 +147,22 @@ def common_t(a: type, b: type) -> Result[Exception, Exception, type]:
 
 
 def common(a: any, b: any) -> Result[Exception, Exception, type]:
-	"""Return the most specifc type that `a` and `b` have in common.
+	"""
+	Return the most specifc type that `a` and `b` have in common.
 
-	If `a` and `b` have an extremely broad common type (e.g. `object`), then
-	the result will include a `BroadCommonTypeWarning`. If there is no
-	common type at all, the result will be a `NoCommonTypeError`.
+	If `a` and `b` have an extremely broad common type (e.g. `object`), then the
+	result will include a `BroadCommonTypeWarning`. If there is no common type
+	at all, the result will be a `NoCommonTypeError`.
 
-	Note that if `a` and `b` have the same type, or if one is a subclass of
-	the other, the result will always be `Okay()`, even if one or the
-	other's type is `object`. `BroadCommonTypeWarning` only applies when
-	this function has to look for 'common ancestors.'
+	Note that if `a` and `b` have the same type, or if one is a subclass of the
+	other, the result will always be `Okay()`, even if one or the other's type
+	is `object`. `BroadCommonTypeWarning` only applies when this function has to
+	look for 'common ancestors.'
 
 	:param a: The first value to compare
 	:param b: The second value to compare
 	:returns: `Okay(t)` where `t` is the most specific common type, or
-	    `Warning(BroadCommonTypeWarning, t)` if the common type is too
-	    broad, or `Error(NoCommonTypeError)` if there is no common type at
-	    all.
+	    `Warning(BroadCommonTypeWarning, t)` if the common type is too broad, or
+	    `Error(NoCommonTypeError)` if there is no common type at all.
 	"""
 	return common_t(type(a), type(b))

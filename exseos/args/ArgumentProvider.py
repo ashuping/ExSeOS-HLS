@@ -1,5 +1,5 @@
 """
-Chicory ML Workflow Manager
+ExSeOS-H Hardware ML Workflow Manager
 Copyright (C) 2024  Alexis Maya-Isabelle Shuping
 
 This program is free software: you can redistribute it and/or modify
@@ -16,27 +16,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from modules.data import DataStore
 
-
-class BasicDataStore[T](DataStore):
-	"""
-	Basic data store that keeps all of its values in memory.
-	"""
-
-	def __init__(self, label: str):
-		self.__label = label
-		self.__data = {}
-
-	@property
-	def label(self) -> str:
-		return self.__label
-
-	def insert(self, label: str, t: T) -> bool:
-		if label in self.__data.keys:
-			return False
-		else:
-			self.__data[label] = t
-
-	def __iter__(self):
-		return self.__data.items()
+class ArgumentProvider:
+	pass

@@ -1,5 +1,5 @@
 """
-Chicory ML Workflow Manager
+ExSeOS-HLS Hardware ML Workflow Manager
 Copyright (C) 2024  Alexis Maya-Isabelle Shuping
 
 This program is free software: you can redistribute it and/or modify
@@ -16,8 +16,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from modules.types import common
-from modules.types.Option import Option, Nothing, Some
+from exseos.types import common
+from exseos.types.Option import Option, Nothing, Some
 
 from abc import ABC, abstractmethod
 import logging
@@ -29,7 +29,8 @@ log = logging.getLogger(__name__)
 
 
 class Variable[A](ABC):
-	"""Stores a quantity whose value can vary from workflow to workflow,
+	"""
+	Stores a quantity whose value can vary from workflow to workflow,
 	controlled either statically (manually set in configuration) or
 	dynamically (controlled by an optimizer)
 	"""
@@ -37,7 +38,8 @@ class Variable[A](ABC):
 	@property
 	@abstractmethod
 	def is_bound(self) -> bool:
-		"""`True` iff this variable has been bound to a value.
+		"""
+		`True` iff this variable has been bound to a value.
 
 		Note that `Variable.val` will only return a value if the variable is
 		bound; otherwise, a `TypeError` will be raised.
@@ -59,7 +61,8 @@ class Variable[A](ABC):
 	@property
 	@abstractmethod
 	def val(self) -> A:
-		"""The bound value of this Variable. Only exists if `is_bound` is True;
+		"""
+		The bound value of this Variable. Only exists if `is_bound` is True;
 		otherwise, a `TypeError` will be raised.
 		"""
 		...  # pragma: no cover
@@ -73,7 +76,8 @@ class Variable[A](ABC):
 	@property
 	@abstractmethod
 	def var_type_inferred(self) -> bool:
-		"""True if `var_type` was automatically inferred (and thus potentially
+		"""
+		True if `var_type` was automatically inferred (and thus potentially
 		inaccurate); False if it was explicitly provided.
 		"""
 		...  # pragma: no cover

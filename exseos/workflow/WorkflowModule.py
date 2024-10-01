@@ -1,5 +1,5 @@
 """
-Chicory ML Workflow Manager
+ExSeOS-H Hardware ML Workflow Manager
 Copyright (C) 2024  Alexis Maya-Isabelle Shuping
 
 This program is free software: you can redistribute it and/or modify
@@ -16,6 +16,20 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from exseos.data import DataStore
+from exseos.args.ArgumentProvider import ArgumentProvider
+from exseos.report.ReportProvider import ReportProvider
+import logging
 
-class ReportProvider:
-	pass
+
+class WorkflowModule:
+	def __init__(
+		self,
+		report: ReportProvider,
+		log: logging.Logger,
+	):
+		self.report = report
+		self.log = log
+
+	def run(self, store: DataStore, args: ArgumentProvider):
+		raise NotImplementedError

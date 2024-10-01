@@ -1,5 +1,5 @@
 """
-Chicory ML Workflow Manager
+ExSeOS-H Hardware ML Workflow Manager
 Copyright (C) 2024  Alexis Maya-Isabelle Shuping
 
 This program is free software: you can redistribute it and/or modify
@@ -16,9 +16,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from modules.data.Variable import BoundVariable, UnboundVariable
-from modules.workflow.stage.StageFromFunction import make_StageFromFunction
-from modules.types.Option import Some
+from exseos.data.Variable import BoundVariable, UnboundVariable
+from exseos.workflow.stage.StageFromFunction import make_StageFromFunction
+from exseos.types.Option import Some
 
 
 def test_basic_function():

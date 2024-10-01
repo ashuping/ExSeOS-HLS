@@ -1,5 +1,5 @@
 """
-Chicory ML Workflow Manager
+ExSeOS-H Hardware ML Workflow Manager
 Copyright (C) 2024  Alexis Maya-Isabelle Shuping
 
 This program is free software: you can redistribute it and/or modify
@@ -18,8 +18,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from abc import ABC
 
-from modules.types.Result import Okay, Warning, Error
-from modules.types import (
+from exseos.types.Result import Okay, Warning, Error
+from exseos.types import (
 	type_check,
 	common,
 	common_t,

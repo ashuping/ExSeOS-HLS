@@ -1,7 +1,7 @@
 from pytest import raises
 
-from modules.types.ComparableError import ComparableError
-from modules.types.Result import Okay, Warning, Error
+from exseos.types.ComparableError import ComparableError
+from exseos.types.Result import Okay, Warning, Error
 
 
 def test_is_okay():

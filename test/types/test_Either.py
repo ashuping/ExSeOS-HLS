@@ -1,6 +1,6 @@
 from pytest import raises
 
-from modules.types.Either import Either, Left, Right
+from exseos.types.Either import Either, Left, Right
 
 
 def test_is_right():

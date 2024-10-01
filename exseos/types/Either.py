@@ -1,5 +1,5 @@
 """
-Chicory ML Workflow Manager
+ExSeOS-H Hardware ML Workflow Manager
 Copyright (C) 2024  Alexis Maya-Isabelle Shuping
 
 This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from modules.types.ComparableError import ComparableError
+from exseos.types.ComparableError import ComparableError
 
 from typing import TypeVar, Callable
 from abc import ABC, abstractmethod
@@ -43,40 +43,44 @@ class Either[A, B](ABC):
 	@property
 	@abstractmethod
 	def val(self) -> B:
-		"""Return the inner value of a Right.
+		"""
+		Return the inner value of a Right.
 
-		@warning Raises a TypeError if called on a Left.
+		:raises TypeError: If called on a Left.
 		"""
 		...  # pragma: no cover
 
 	@property
 	@abstractmethod
 	def lval(self) -> B:
-		"""Return the inner value of a Left.
+		"""
+		Return the inner value of a Left.
 
-		@warning Raises a TypeError if called on a Right.
+		:raises TypeError: if called on a Right.
 		"""
 		...  # pragma: no cover
 
 	@abstractmethod
 	def map(self, f: Callable[[B], C]) -> "Either[A, C]":
-		"""If this Either is a Right, call `f` on its rval and return a Right()
-		of the result.
+		"""
+		If this Either is a Right, call `f` on its rval and return a Right() of
+		the result.
 
-		If it is a Left, do not call `f` and just return a Left() of the
-		lval.
+		If it is a Left, do not call `f` and just return a Left() of the lval.
 		"""
 		...  # pragma: no cover
 
 	@abstractmethod
 	def flat_map(self, f: Callable[[B], "Either[A, C]"]) -> "Either[A, C]":
-		"""Similar to Map, except that `f` should convert `B`'s directly into
-		an `Either`.
+		"""
+		Similar to Map, except that `f` should convert `B`'s directly into an
+		`Either`.
 		"""
 		...  # pragma: no cover
 
 	def __eq__(self, other) -> bool:
-		"""Returns True iff both Eithers being compared are the same type (i.e.
+		"""
+		Returns True iff both Eithers being compared are the same type (i.e.
 		both Left or both Right) AND the relevant inner values are the same.
 		"""
 		if not issubclass(type(other), Either):

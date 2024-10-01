@@ -1,5 +1,5 @@
 """
-Chicory ML Workflow Manager
+ExSeOS-H Hardware ML Workflow Manager
 Copyright (C) 2024  Alexis Maya-Isabelle Shuping
 
 This program is free software: you can redistribute it and/or modify
@@ -19,14 +19,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import logging
 import random
 
-from modules.data.Variable import Variable, UnboundVariable
-from modules.types.Option import Some
+from exseos.data.Variable import Variable, UnboundVariable
+from exseos.types.Option import Some
 
 log = logging.get_logger(__name__)
 
 
 class Workflow:
-	"""Base class for Workflows.
+	"""
+	Base class for Workflows.
 
 	Instead of instantiating this directly, use `MakeWorkflow`.
 	"""
@@ -36,8 +37,9 @@ class Workflow:
 
 
 class MakeWorkflow:
-	"""Workflow factory. Use this class to construct a Workflow that can then
-	be instantiated.
+	"""
+	Workflow factory. Use this class to construct a Workflow that can then be
+	instantiated.
 	"""
 
 	def __init__(self, name=None):
@@ -50,14 +52,15 @@ class MakeWorkflow:
 		self.outputs = []
 
 	def given(self, *args, **kwargs):
-		"""Add one or more inputs to the Workflow.
+		"""
+		Add one or more inputs to the Workflow.
 
-		Arguments should either be `Variable`s or strings. In the latter
-		case, appropriate variables are created for the strings.
+		Arguments should either be `Variable`s or strings. In the latter case,
+		appropriate variables are created for the strings.
 
 		Keyword arguments may be provided - these are interpreted as default
-		values for the variable. For example, providing `my_var=1` creates a
-		new `UnboundVariable` called `my_var` with a default value of `1`.
+		values for the variable. For example, providing `my_var=1` creates a new
+		`UnboundVariable` called `my_var` with a default value of `1`.
 
 		Keyword argument names must, of course, be strings. To provide a
 		pre-existing `Variable` with a default value, the default must be
@@ -75,11 +78,11 @@ class MakeWorkflow:
 			self.inputs.append(UnboundVariable(kwarg, default=Some(kwdefault)))
 
 	def output(self, *args):
-		"""Add one or more outputs to the Workflow.
+		"""
+		Add one or more outputs to the Workflow.
 
-		Arguments should either be `Variable`s or strings. In the latter
-		case, wiring will search for the latest `Variable` with the provided
-		name.
+		Arguments should either be `Variable`s or strings. In the latter case,
+		wiring will search for the latest `Variable` with the provided name.
 		"""
 		for arg in args:
 			if issubclass(type(arg), Variable):
@@ -94,6 +97,7 @@ class MakeWorkflow:
 		self.stages = args
 
 	def __call__(self, *args, **kwargs):
-		"""Instantiate the Workflow and bind the provided arguments to its
-		inputs.
 		"""
+		Instantiate the Workflow and bind the provided arguments to its inputs.
+		"""
+		raise NotImplementedError

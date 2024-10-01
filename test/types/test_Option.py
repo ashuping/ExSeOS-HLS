@@ -1,6 +1,6 @@
 from pytest import raises
 
-from modules.types.Option import Option, Nothing, Some
+from exseos.types.Option import Option, Nothing, Some
 
 
 def test_has_val():

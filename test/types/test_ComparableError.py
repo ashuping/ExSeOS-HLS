@@ -1,4 +1,4 @@
-from modules.types.ComparableError import ComparableError
+from exseos.types.ComparableError import ComparableError
 
 
 def test_get_exc():

@@ -1,5 +1,5 @@
 """
-Chicory ML Workflow Manager
+ExSeOS-H Hardware ML Workflow Manager
 Copyright (C) 2024  Alexis Maya-Isabelle Shuping
 
 This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from modules.types.ComparableError import ComparableError
+from exseos.types.ComparableError import ComparableError
 
 from typing import TypeVar, Callable
 from abc import ABC, abstractmethod
@@ -41,16 +41,18 @@ class Option[A](ABC):
 	@property
 	@abstractmethod
 	def val(self) -> A:
-		"""Return the inner value of a `Some[A]`.
+		"""
+		Return the inner value of a `Some[A]`.
 
-		@warning Raises a TypeError if called on `Nothing`.
+		:raises TypeError: if called on `Nothing`.
 		"""
 		...  # pragma: no cover
 
 	@abstractmethod
 	def map(self, f: Callable[[A], B]) -> "Option[B]":
-		"""If this is `Some[A]`, call `f` on its value and return a `Some[B]`
-		of the result.
+		"""
+		If this is `Some[A]`, call `f` on its value and return a `Some[B]` of
+		the result.
 
 		If it is `Nothing`, do not call `f` and just return `Nothing`.
 
@@ -61,24 +63,25 @@ class Option[A](ABC):
 
 	@abstractmethod
 	def flat_map(self, f: Callable[[A], "Option[B]"]) -> "Option[B]":
-		"""Similar to Map, except that `f` should convert `A`'s directly into
+		"""
+		Similar to Map, except that `f` should convert `A`'s directly into
 		`Option[B]`'s.
 
-		:param f: A function that takes an `A` and converts it to an
-		    `Option[B]`
+		:param f: A function that takes an `A` and converts it to an `Option[B]`
 		:returns: `f(a)` if this `Option` is `Some(a)`, else `Nothing()`
 		"""
 		...  # pragma: no cover
 
 	@staticmethod
 	def make_from(obj: any) -> "Option[A]":
-		"""Convenience method to ensure an object is an Option. If `obj` is
-		already an Option, it is returned as-is. If `obj` is None, it is
-		converted to `Nothing()`. Otherwise, it is converted to `Some(obj)`
+		"""
+		Convenience method to ensure an object is an Option. If `obj` is already
+		an Option, it is returned as-is. If `obj` is None, it is converted to
+		`Nothing()`. Otherwise, it is converted to `Some(obj)`
 
 		:param obj: The object to encapsulate
-		:returns: `obj` if `obj` is an Option; otherwise, `Some(obj)` if obj
-		    is not None; otherwise, `Nothing()`.
+		:returns: `obj` if `obj` is an Option; otherwise, `Some(obj)` if obj is
+		    not None; otherwise, `Nothing()`.
 		"""
 		...  # pragma: no cover
 

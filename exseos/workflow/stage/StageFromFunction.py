@@ -1,5 +1,5 @@
 """
-Chicory ML Workflow Manager
+ExSeOS-H Hardware ML Workflow Manager
 Copyright (C) 2024  Alexis Maya-Isabelle Shuping
 
 This program is free software: you can redistribute it and/or modify
@@ -16,9 +16,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from modules.data.Variable import Variable, UnboundVariable
-from modules.types.Option import Option, Some, Nothing
-from modules.workflow.stage.Stage import Stage, StageResult
+from exseos.data.Variable import Variable, UnboundVariable
+from exseos.types.Option import Option, Some, Nothing
+from exseos.workflow.stage.Stage import Stage, StageResult
 
 from abc import abstractmethod
 import inspect
@@ -59,9 +59,9 @@ def _extract_func_args_and_ret(fn: Callable) -> tuple[list[Variable], Option[Var
 	Extract the arguments and (if present) return-type annotation from a
 	function.
 
-	    :param fn: The function to extract data from.
-	    :returns: A tuple whose first element is the list of input `Variable`s
-	              and the second element is an `Option`al return-type `Variable`
+	:param fn: The function to extract data from.
+	:returns: A tuple whose first element is the list of input `Variable`s
+	          and the second element is an `Option`al return-type `Variable`
 	"""
 	sig = inspect.signature(fn)
 
