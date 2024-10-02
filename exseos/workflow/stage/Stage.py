@@ -1,19 +1,22 @@
+# ExSeOS-H Hardware ML Workflow Manager
+# Copyright (C) 2024  Alexis Maya-Isabelle Shuping
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 """
-ExSeOS-H Hardware ML Workflow Manager
-Copyright (C) 2024  Alexis Maya-Isabelle Shuping
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
+A ``Stage`` is a single step in a ``Workflow``. It is the base unit of
+computation within ExSeOS.
 """
 
 from exseos.data.Variable import Variable, UnboundVariable
@@ -30,11 +33,11 @@ def _process_stage_io(
 	Match a single input (or output) from our variable list to the provided
 	parameters.
 
-	:param dex: Offset in our input `Variable` list for `i`
-	:param i: Input `Variable` to match
+	:param dex: Offset in our input ``Variable`` list for ``i``
+	:param i: Input ``Variable`` to match
 	:param args: Positional function args to match against
 	:param kwargs: Keyword function args to match against
-	:returns: The matching `Variable` if found, or `Nothing` if not.
+	:returns: The matching ``Variable`` if found, or ``Nothing`` if not.
 	"""
 
 	def __atov(a: Variable | str) -> Variable:
@@ -53,11 +56,12 @@ def _process_stage_io(
 
 class Stage(ABC):
 	"""
-	Represents a Stage - something that can be used as a step in a Workflow.
+	Represents a step in a ``Workflow``.
 
-	Stages are immutable - their inputs (and outputs, if applicable), do not
-	change once set. Functions modifying Stages will return a new Stage with the
-	desired modifications, rather than modifying the existing Stage in-place.
+	``Stage``'s are immutable - their inputs (and outputs, if applicable), do
+	not change once set. Functions modifying ``Stage``'s will return a new
+	``Stage`` with the desired modifications, rather than modifying the existing
+	``Stage`` in-place.
 	"""
 
 	input_vars: tuple[UnboundVariable] = ()
@@ -70,10 +74,10 @@ class Stage(ABC):
 		**kwargs: dict[str, str | Variable],
 	):
 		"""
-		Create a Stage and bind its input variables.
+		Create a ``Stage`` and bind its input variables.
 
-		All arguments should be either `Variable`s or strings. Strings are
-		automatically converted to `UnboundVariable`s. Keyword arguments are
+		All arguments should be either ``Variable``'s or strings. Strings are
+		automatically converted to ``UnboundVariable``'s. Keyword arguments are
 		matched by name; positional arguments are matched by position.
 
 		:param _to: Internal-use constructor for supplying output variable
@@ -100,11 +104,13 @@ class Stage(ABC):
 	@abstractmethod
 	def run(self, inputs: list[Variable]) -> "StageResult":
 		"""
-		Run this stage, returning a StageResult containing output information.
+		Run this ``stage``, returning a ``StageResult`` containing output
+		information.
 
-		:param inputs: A list of all `Variables` needed for this `Stage` to run.
-		:returns: A `StageResult` containing output `Variable`s for this
-		    `Stage`.
+		:param inputs: A list of all ``Variables`` needed for this ``Stage`` to
+		    run.
+		:returns: A ``StageResult`` containing output ``Variable``s for this
+		    ``Stage``.
 		"""
 		...  # pragma: no cover
 
@@ -116,18 +122,18 @@ class Stage(ABC):
 	@property
 	def _output_bindings(self) -> Option[list[Variable]]:
 		"""
-		An `Option`al list of Output bindings for this stage. Used for internal
-		wiring.
+		An ``Option``'al list of output bindings for this stage. Used for
+		internal wiring.
 		"""
 		return self.__outputs
 
 	def to(self, *args, **kwargs) -> "Stage":
 		"""
-		Bind the outputs of the `Stage` to a `Variable` or name.
+		Bind the outputs of the ``Stage`` to a ``Variable`` or name.
 
 		:param args: Outputs to be bound by position
 		:params kwargs: Outputs to be bound by name
-		:returns: A copy of this `Stage` with the outputs bound.
+		:returns: A copy of this ``Stage`` with the outputs bound.
 		"""
 		_to = (args, kwargs)
 
@@ -136,7 +142,7 @@ class Stage(ABC):
 
 @dataclass(frozen=True)
 class StageResult:
-	"""Holds the result of an executed Stage."""
+	"""Holds the result of an executed ``Stage``."""
 
 	stage: Stage
 	outputs: tuple[Variable]

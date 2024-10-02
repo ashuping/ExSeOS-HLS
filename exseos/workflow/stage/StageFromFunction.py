@@ -1,19 +1,24 @@
+# ExSeOS-H Hardware ML Workflow Manager
+# Copyright (C) 2024  Alexis Maya-Isabelle Shuping
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 """
-ExSeOS-H Hardware ML Workflow Manager
-Copyright (C) 2024  Alexis Maya-Isabelle Shuping
+Utilities for automatically constructing a ``Stage`` from a function. Useful for
+quickly converting existing code to use ExSeOS.
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
+To construct a stage from a function, use ``make_StageFromFunction``.
 """
 
 from exseos.data.Variable import Variable, UnboundVariable
@@ -36,14 +41,14 @@ def _input_list_to_kwargs(input_list: tuple[Variable]) -> dict[str, any]:
 
 class StageFromFunction(Stage):
 	"""
-	A `Stage` constructed automatically from a function.
+	A ``Stage`` constructed automatically from a function.
 
-	To construct a `StageFromFunction`, use `make_StageFromFunction`.
+	To construct a ``StageFromFunction``, use ``make_StageFromFunction``.
 	"""
 
 	@abstractmethod
 	def inner_function(self, *args, **kwargs):
-		"""The actual function encapsulated in a StageFromFunction."""
+		"""The actual function encapsulated in a ``StageFromFunction``."""
 		...  # pragma: no cover
 
 	def run(self, inputs: tuple[Variable]) -> StageResult:
@@ -60,8 +65,9 @@ def _extract_func_args_and_ret(fn: Callable) -> tuple[list[Variable], Option[Var
 	function.
 
 	:param fn: The function to extract data from.
-	:returns: A tuple whose first element is the list of input `Variable`s
-	          and the second element is an `Option`al return-type `Variable`
+	:returns: A tuple whose first element is the list of input ``Variable``'s
+	          and the second element is an ``Option``'al return-type
+	          ``Variable``
 	"""
 	sig = inspect.signature(fn)
 
@@ -89,12 +95,12 @@ def _extract_func_args_and_ret(fn: Callable) -> tuple[list[Variable], Option[Var
 
 def make_StageFromFunction(fn: Callable) -> type[StageFromFunction]:
 	"""
-	Return a concrete subclass of `StageFromFunction`, with its inner
-	function set to the provided `fn`. Unlike `StageFromFunction` itself,
-	these subclasses can be directly instantiated.
+	Return a concrete subclass of ``StageFromFunction``, with its inner function
+	set to the provided ``fn``. Unlike ``StageFromFunction`` itself, these
+	subclasses can be directly instantiated.
 
 	:param fn: The function to convert.
-	:returns: A concrete subclass of `StageFromFunction`
+	:returns: A concrete subclass of ``StageFromFunction``
 	"""
 	args, ret = _extract_func_args_and_ret(fn)
 

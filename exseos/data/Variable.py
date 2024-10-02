@@ -1,19 +1,23 @@
+# ExSeOS-HLS Hardware ML Workflow Manager
+# Copyright (C) 2024  Alexis Maya-Isabelle Shuping
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 """
-ExSeOS-HLS Hardware ML Workflow Manager
-Copyright (C) 2024  Alexis Maya-Isabelle Shuping
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
+A ``Variable`` is a quantity that can vary from workflow to workflow. They are
+used to store inputs, outputs, and intermediate values flowing between
+``WorkflowStage``'s.
 """
 
 from exseos.types import common
@@ -39,10 +43,10 @@ class Variable[A](ABC):
 	@abstractmethod
 	def is_bound(self) -> bool:
 		"""
-		`True` iff this variable has been bound to a value.
+		``True`` iff this variable has been bound to a value.
 
-		Note that `Variable.val` will only return a value if the variable is
-		bound; otherwise, a `TypeError` will be raised.
+		Note that ``Variable.val`` will only return a value if the variable is
+		bound; otherwise, a ``TypeError`` will be raised.
 		"""
 		...  # pragma: no cover
 
@@ -62,8 +66,10 @@ class Variable[A](ABC):
 	@abstractmethod
 	def val(self) -> A:
 		"""
-		The bound value of this Variable. Only exists if `is_bound` is True;
-		otherwise, a `TypeError` will be raised.
+		The bound value of this Variable. Only exists if ``is_bound`` is True;
+		otherwise, a ``TypeError`` will be raised.
+
+		:raises TypeError: if the ``Variable`` is not bound.
 		"""
 		...  # pragma: no cover
 
@@ -77,7 +83,7 @@ class Variable[A](ABC):
 	@abstractmethod
 	def var_type_inferred(self) -> bool:
 		"""
-		True if `var_type` was automatically inferred (and thus potentially
+		True if ``var_type`` was automatically inferred (and thus potentially
 		inaccurate); False if it was explicitly provided.
 		"""
 		...  # pragma: no cover

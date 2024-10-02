@@ -1,19 +1,52 @@
+# ExSeOS-H Hardware ML Workflow Manager
+# Copyright (C) 2024  Alexis Maya-Isabelle Shuping
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 """
-ExSeOS-H Hardware ML Workflow Manager
-Copyright (C) 2024  Alexis Maya-Isabelle Shuping
+A ``Result`` holds the result of a computation in a sequenceable way.
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+``Result``'s can be one of the following:
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+* ``Okay(r)``: The computation completed with result ``r``, without errors.
+* ``Warning(w, r)``: The computation encountered issues, but was still able to
+  complete with result ``r``. Warnings are held in ``w``
+* ``Error(e, w)``: The computation encountered fatal errors and was unable to
+  complete. The fatal error(s) encountered are held in ``e``, and non-fatal
+  warnings are held in ``w``.
 
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Resultant values can be extracted from ``Okay`` and ``Warning`` objects using
+``Result.val``; however, attempting to do so with an ``Error`` object will
+result in a ``TypeError``.
+
+A list of warnings (usually in the form of ``Exception``'s) can be extracted
+from ``Warning`` and ``Error`` objects using ``Result.warnings``; however,
+attempting to do so with an ``Okay`` object will result in a ``TypeError``.
+
+A list of fatal errors (also usually in the form of ``Exception``'s) can be
+extracted from ``Error`` objects using ``Result.errors``; however, attempting to
+do so with an ``Okay`` or ``Warning`` object will result in a ``TypeError``.
+
+Computations that return ``Result`` objects can be sequenced using
+``Result.flat_map()``.
+
+The right-shift operator can be used to merge ``Result`` objects. The resultant
+object will always be the worst of all the inputs (i.e. ``Okay`` >> ``Warning``
+>> ``Error`` will result in an ``Error``). ``val``, if present, will be the
+``val`` of the last object in the chain. ``warnings`` will be the combination of
+all input objects' ``warnings``, and ``errors`` will be the combination of all
+input objects' ``errors``
 """
 
 from exseos.types.ComparableError import ComparableError
@@ -31,34 +64,34 @@ class Result[A, B, C](ABC):
 	"""
 	Represents the result of a computation.
 
-	Can either be `Okay[C]`, `Warning[B, C]`, or `Error[A, B]`.
+	Can either be ``Okay[C]``, ``Warning[B, C]``, or ``Error[A, B]``.
 
-	`val` of type `C` represents the return type of the computation. It is
-	present in `Okay` and `Warning` types, but not `Error` types.
+	``val`` of type ``C`` represents the return type of the computation. It is
+	present in ``Okay`` and ``Warning`` types, but not ``Error`` types.
 
-	`warn` of type `B` represents non-fatal warnings. It is present in `Warning`
-	and `Error` types, but not `Okay` types.
+	``warn`` of type ``B`` represents non-fatal warnings. It is present in
+	``Warning`` and ``Error`` types, but not ``Okay`` types.
 
-	`err` of type `A` represents fatal errors. It is only present in `Error`
-	types.
+	``err`` of type ``A`` represents fatal errors. It is only present in
+	``Error`` types.
 	"""
 
 	@property
 	@abstractmethod
 	def is_okay(self) -> bool:
-		# True IFF the result is `Okay`.
+		"""True IFF the result is ``Okay``."""
 		...  # pragma: no cover
 
 	@property
 	@abstractmethod
 	def is_warning(self) -> bool:
-		# True IFF the result is `Warning`
+		"""True IFF the result is ``Warning``"""
 		...  # pragma: no cover
 
 	@property
 	@abstractmethod
 	def is_error(self) -> bool:
-		# True IFF the result is `Error`
+		""" True IFF the result is ``Error``"""
 		...  # pragma: no cover
 
 	@property
@@ -67,10 +100,10 @@ class Result[A, B, C](ABC):
 		"""
 		Return the result of the computation.
 
-		This is present for `Okay` and `Warning` types. It is NOT present for
-		`Error` types.
+		This is present for ``Okay`` and ``Warning`` types. It is NOT present
+		for ``Error`` types.
 		
-		:raises TypeError: if called on an `Error`
+		:raises TypeError: if called on an ``Error``
 		"""
 		...  # pragma: no cover
 
@@ -80,10 +113,10 @@ class Result[A, B, C](ABC):
 		"""
 		Return the list of warnings generated during the computation.
 
-		This is present for `Warning` and `Error` types. It is NOT present for
-		`Okay` types.
+		This is present for ``Warning`` and ``Error`` types. It is NOT present
+		for ``Okay`` types.
 
-		:raises TypeError: if called on an `Okay`
+		:raises TypeError: if called on an ``Okay``
 		"""
 		...  # pragma: no cover
 
@@ -93,25 +126,25 @@ class Result[A, B, C](ABC):
 		"""
 		Return the list of fatal errors generated during the computation.
 
-		This is only present for `Error` types.
+		This is only present for ``Error`` types.
 
-		:raises TypeError: if called on an `Okay` or `Warning`
+		:raises TypeError: if called on an ``Okay`` or ``Warning``
 		"""
 		...  # pragma: no cover
 
 	@abstractmethod
 	def map(self, f: Callable[[C], D]) -> "Result[A, B, D]":
 		"""
-		If this `Result` is `Okay` or `Warning`, call `f` on its value and
-		return an `Okay` or `Warning` of the result.
+		If this ``Result`` is ``Okay`` or ``Warning``, call ``f`` on its value
+		and return an ``Okay`` or ``Warning`` of the result.
 		"""
 		...  # pragma: no cover
 
 	@abstractmethod
 	def flat_map(self, f: Callable[[C], "Result[A, B, D]"]) -> "Result[A, B, D]":
 		"""
-		If this `Result` is `Okay` or `Warning`, call `f` on its value and
-		return the output, which must itself be a `Result`.
+		If this ``Result`` is ``Okay`` or ``Warning``, call ``f`` on its value
+		and return the output, which must itself be a ``Result``.
 		"""
 		...  # pragma: no cover
 
@@ -169,7 +202,7 @@ class Okay[C](Result):
 	"""
 	Represents a computation that has succeeded without any errors or warnings.
 
-	Has a `val`, but no `warnings` or `errors`
+	Has a value, but no warnings or errors
 	"""
 
 	def __init__(self, val: C):
@@ -213,7 +246,7 @@ class Warning[B, C](Result):
 	"""
 	Represents a computation that encountered non-fatal errors.
 
-	Has a `val` and `warnings`, but no `errors`
+	Has a value and warnings, but no errors
 	"""
 
 	def __init__(self, warn: List[B], val: C):
@@ -264,7 +297,7 @@ class Error[A, B](Result):
 	"""
 	Represents a computation which failed with errors.
 
-	Has `warnings` and `errors`, but no `val`.
+	Has warnings and errors, but no value.
 	"""
 
 	def __init__(self, errors: List[A], warnings: List[B] = []):

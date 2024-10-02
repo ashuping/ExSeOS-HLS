@@ -1,19 +1,25 @@
+# ExSeOS-H Hardware ML Workflow Manager
+# Copyright (C) 2024  Alexis Maya-Isabelle Shuping
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 """
-ExSeOS-H Hardware ML Workflow Manager
-Copyright (C) 2024  Alexis Maya-Isabelle Shuping
+Generic type for an explicitly nullable value.
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
+An ``Option`` can either be ``Some`` (which contains a value) or ``Nothing``
+(which does not). Using an ``Option`` makes a value *explicitly* (rather than
+implicitly) nullable.
 """
 
 from exseos.types.ComparableError import ComparableError
@@ -29,59 +35,61 @@ class Option[A](ABC):
 	"""
 	Represents a value that could be absent.
 
-	It is either `Some[A]` or `Nothing`.
+	It is either ``Some[A]`` or ``Nothing``.
 	"""
 
 	@property
 	@abstractmethod
 	def has_val(self) -> bool:
-		"""Return True if this is `Some[A]`; otherwise, return False."""
+		"""True if this is ``Some[A]``; otherwise False."""
 		...  # pragma: no cover
 
 	@property
 	@abstractmethod
 	def val(self) -> A:
 		"""
-		Return the inner value of a `Some[A]`.
+		The inner value of a ``Some[A]``.
 
-		:raises TypeError: if called on `Nothing`.
+		:raises TypeError: if called on ``Nothing``.
 		"""
 		...  # pragma: no cover
 
 	@abstractmethod
 	def map(self, f: Callable[[A], B]) -> "Option[B]":
 		"""
-		If this is `Some[A]`, call `f` on its value and return a `Some[B]` of
-		the result.
+		If this is ``Some[A]``, call ``f`` on its value and return a ``Some[B]``
+		of the result.
 
-		If it is `Nothing`, do not call `f` and just return `Nothing`.
+		If it is ``Nothing``, do not call ``f`` and just return ``Nothing``.
 
-		:param: f: A function that takes an `A` and converts it to a `B`
-		:returns: `Some(f(a))` if this Option is `Some(a)`, else `Nothing()`
+		:param: f: A function that takes an ``A`` and converts it to a ``B``
+		:returns: ``Some(f(a))`` if this Option is ``Some(a)``, else
+		    ``Nothing()``
 		"""
 		...  # pragma: no cover
 
 	@abstractmethod
 	def flat_map(self, f: Callable[[A], "Option[B]"]) -> "Option[B]":
 		"""
-		Similar to Map, except that `f` should convert `A`'s directly into
-		`Option[B]`'s.
+		Similar to Map, except that ``f`` should convert ``A``'s directly into
+		``Option[B]``'s.
 
-		:param f: A function that takes an `A` and converts it to an `Option[B]`
-		:returns: `f(a)` if this `Option` is `Some(a)`, else `Nothing()`
+		:param f: A function that takes an ``A`` and converts it to an
+		    ``Option[B]``
+		:returns: ``f(a)`` if this ``Option`` is ``Some(a)``, else ``Nothing()``
 		"""
 		...  # pragma: no cover
 
 	@staticmethod
 	def make_from(obj: any) -> "Option[A]":
 		"""
-		Convenience method to ensure an object is an Option. If `obj` is already
-		an Option, it is returned as-is. If `obj` is None, it is converted to
-		`Nothing()`. Otherwise, it is converted to `Some(obj)`
+		Convenience method to ensure an object is an Option. If ``obj`` is
+		already an Option, it is returned as-is. If ``obj`` is None, it is
+		converted to ``Nothing``. Otherwise, it is converted to ``Some(obj)``
 
 		:param obj: The object to encapsulate
-		:returns: `obj` if `obj` is an Option; otherwise, `Some(obj)` if obj is
-		    not None; otherwise, `Nothing()`.
+		:returns: ``obj`` if ``obj`` is an Option; otherwise, ``Some(obj)`` if
+		    obj is not None; otherwise, ``Nothing()``.
 		"""
 		...  # pragma: no cover
 
@@ -103,7 +111,7 @@ class Option[A](ABC):
 
 
 class Nothing(Option):
-	"""Represents an empty `Option`."""
+	"""Represents an empty ``Option``."""
 
 	@property
 	def has_val(self) -> bool:
@@ -124,7 +132,7 @@ class Nothing(Option):
 
 
 class Some[A](Option):
-	"""Represents an `Option` that contains a concrete value."""
+	"""Represents an ``Option`` that contains a concrete value."""
 
 	def __init__(self, val: A):
 		self.__val = val
