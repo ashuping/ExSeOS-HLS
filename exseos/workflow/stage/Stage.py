@@ -111,7 +111,7 @@ class Stage(ABC):
 
 		:param inputs: A list of all ``Variables`` needed for this ``Stage`` to
 		    run.
-		:returns: A ``Result`` containing output ``Variable``s for this
+		:returns: A ``Result`` containing output ``Variable``'s for this
 		    ``Stage``.
 		"""
 		...  # pragma: no cover
