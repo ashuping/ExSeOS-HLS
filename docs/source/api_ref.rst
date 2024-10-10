@@ -2,6 +2,6 @@ API Reference
 =============
 
 .. toctree::
-	:maxdepth: 4
+	:maxdepth: 12
 	
 	api_ref/exseos

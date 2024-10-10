@@ -2,7 +2,7 @@ Welcome to ExSeOS-HLS!
 =====================================
 
 .. toctree::
-	:maxdepth: 2
+	:maxdepth: 8
 	:caption: Contents:
 
 	api_ref

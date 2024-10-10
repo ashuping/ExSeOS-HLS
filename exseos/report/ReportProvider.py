@@ -19,5 +19,6 @@ A ReportProvider takes a set of stage outputs and generates a human- or
 machine-readable report of the data.
 """
 
+
 class ReportProvider:
 	pass

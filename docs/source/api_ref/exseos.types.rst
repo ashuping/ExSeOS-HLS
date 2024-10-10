@@ -5,6 +5,8 @@ Provides custom generic types used throughout the project.
 
 Submodules
 ----------
+.. toctree::
+   :maxdepth: 12
 
 exseos.types.ComparableError module
 -----------------------------------

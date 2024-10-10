@@ -18,16 +18,47 @@
 Utility functions to check and compare types.
 """
 
-from exseos.types.Result import Result, Okay, Warning, Error
+from exseos.types.Result import Result, Okay, Warn, Fail
 
 from abc import ABC
 from typing import Generic
 
 
+class TypeCheckWarning(Exception):
+	"""
+	Indicates that a type check has failed. This does not usually stop
+	execution; however, it may cause issues later.
+	"""
+
+	def __init__(self, obj: any, should_be: type, note: str = ""):
+		"""
+		Construct a ``TypeCheckWarning``.
+
+		:param obj: The object that failed type-checking
+		:param should_be: The type that ``obj`` should be
+		"""
+		msg = (
+			f"Type-check failed: Object {obj} should have type "
+			+ f"{should_be.__name__}, but it has type {type(obj).__name__} "
+			+ "instead!"
+			+ (f" {note}" if note else "")
+		)
+
+		super().__init__(msg)
+
+		self.obj = obj
+		self.should_be = should_be
+		self.note = note
+
+
 class BroadCommonTypeWarning(Exception):
 	"""
 	Used when looking for common types. When the common type between two values
-	is extremely broad (e.g. ``object``), this warning is given.
+	is extremely broad (e.g. ``ABC``), this warning is given.
+
+	Note that ``object`` is NOT considered a common type at all - if the only
+	common type between two objects is ``object``, then ``NoCommonTypeError``
+	will be returned.
 	"""
 
 	def __init__(self, types: list[any], common: type, note: str = ""):
@@ -60,7 +91,7 @@ class BroadCommonTypeWarning(Exception):
 class NoCommonTypeError(Exception):
 	"""
 	Used when looking for common types. When there is no common type at all
-	between two values, this error is raised.
+	between two values (except for ``object``), this error is raised.
 	"""
 
 	def __init__(self, types: list[any], note: str = ""):
@@ -112,8 +143,9 @@ def common_t(a: type, b: type) -> Result[Exception, Exception, type]:
 	:param a: The first type to compare
 	:param b: The second type to compare
 	:returns: ``Okay(t)`` where ``t`` is the most specific common type, or
-	    ``Warning(BroadCommonTypeWarning, t)`` if the common type is too broad,
-	    or ``Error(NoCommonTypeError)`` if there is no common type at all.
+	    ``Warn(BroadCommonTypeWarning, t)`` if the common type is too broad,
+	    or ``Fail(NoCommonTypeError)`` if there is no common type besides
+	    ``object``.
 	"""
 	if issubclass(b, a):
 		return Okay(a)
@@ -148,28 +180,30 @@ def common_t(a: type, b: type) -> Result[Exception, Exception, type]:
 
 	candidate = _candidate_search(a, b, False)  # Second pass - include too-broad types
 	if candidate:
-		return Warning([BroadCommonTypeWarning([a, b], candidate)], candidate)
+		return Warn([BroadCommonTypeWarning([a, b], candidate)], candidate)
 	else:
-		return Error([NoCommonTypeError([a, b])])
+		return Fail([NoCommonTypeError([a, b])])
 
 
 def common(a: any, b: any) -> Result[Exception, Exception, type]:
 	"""
 	Return the most specifc type that ``a`` and ``b`` have in common.
 
-	If ``a`` and ``b`` have an extremely broad common type (e.g. ``object``),
-	then the result will include a ``BroadCommonTypeWarning``. If there is no
-	common type at all, the result will be a ``NoCommonTypeError``.
+	If ``a`` and ``b`` have an extremely broad common type (e.g. ``ABC``), then
+	the result will include a ``BroadCommonTypeWarning``. If there is no common
+	type at all (except for ``object``), the result will be a
+	``NoCommonTypeError``.
 
 	Note that if ``a`` and ``b`` have the same type, or if one is a subclass of
 	the other, the result will always be ``Okay()``, even if one or the other's
-	type is ``object``. ``BroadCommonTypeWarning`` only applies when this
-	function has to look for 'common ancestors.'
+	type is broad. ``BroadCommonTypeWarning`` only applies when this function
+	has to look for 'common ancestors.'
 
 	:param a: The first value to compare
 	:param b: The second value to compare
 	:returns: ``Okay(t)`` where ``t`` is the most specific common type, or
-	    ``Warning(BroadCommonTypeWarning, t)`` if the common type is too broad,
-	    or ``Error(NoCommonTypeError)`` if there is no common type at all.
+	    ``Warn(BroadCommonTypeWarning, t)`` if the common type is too broad, or
+	    ``Fail(NoCommonTypeError)`` if there is no common type besides
+	    ``object``.
 	"""
 	return common_t(type(a), type(b))

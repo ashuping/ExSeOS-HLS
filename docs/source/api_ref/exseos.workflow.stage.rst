@@ -3,6 +3,8 @@ exseos.workflow.stage package
 
 Submodules
 ----------
+.. toctree::
+   :maxdepth: 12
 
 exseos.workflow.stage.Stage module
 ----------------------------------

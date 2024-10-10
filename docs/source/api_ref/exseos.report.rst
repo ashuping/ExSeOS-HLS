@@ -3,6 +3,8 @@ exseos.report package
 
 Submodules
 ----------
+.. toctree::
+   :maxdepth: 12
 
 exseos.report.ReportProvider module
 -----------------------------------

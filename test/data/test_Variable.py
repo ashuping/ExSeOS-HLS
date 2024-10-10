@@ -20,6 +20,28 @@ from exseos.data.Variable import UnboundVariable, BoundVariable
 from exseos.types.Option import Nothing, Some
 
 
+def test_val():
+	assert BoundVariable("x", 2).val == Some(2)
+	assert BoundVariable("x", None).val == Some(None)
+	assert UnboundVariable("x").val == Nothing()
+
+
+def test_default():
+	assert UnboundVariable("x", default=Some(2)).val == Some(2)
+	assert BoundVariable("x", 4, default=Some(2)).val == Some(4)
+	assert UnboundVariable("x", default=Nothing()).val == Nothing()
+
+
+def test_bind():
+	assert UnboundVariable("x", Some(int), Some("the test variable x"), Some(1)).bind(
+		2
+	) == BoundVariable("x", 2, Some(int), Some("the test variable x"), Some(1))
+
+	assert BoundVariable("x", 2, Some(int), Some("the test variable x"), Some(1)).bind(
+		4
+	) == BoundVariable("x", 4, Some(int), Some("the test variable x"), Some(1))
+
+
 def test_is_bound():
 	assert BoundVariable("x", 2).is_bound
 	assert BoundVariable("x", None).is_bound

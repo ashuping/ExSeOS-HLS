@@ -20,7 +20,7 @@ used to store inputs, outputs, and intermediate values flowing between
 ``WorkflowStage``'s.
 """
 
-from exseos.types import common
+from exseos.types import common, type_check
 from exseos.types.Option import Option, Nothing, Some
 
 from abc import ABC, abstractmethod
@@ -44,9 +44,6 @@ class Variable[A](ABC):
 	def is_bound(self) -> bool:
 		"""
 		``True`` iff this variable has been bound to a value.
-
-		Note that ``Variable.val`` will only return a value if the variable is
-		bound; otherwise, a ``TypeError`` will be raised.
 		"""
 		...  # pragma: no cover
 
@@ -64,12 +61,10 @@ class Variable[A](ABC):
 
 	@property
 	@abstractmethod
-	def val(self) -> A:
+	def val(self) -> Option[A]:
 		"""
-		The bound value of this Variable. Only exists if ``is_bound`` is True;
-		otherwise, a ``TypeError`` will be raised.
-
-		:raises TypeError: if the ``Variable`` is not bound.
+		The bound value of this Variable. Only exists if ``is_bound`` is True or
+		the variable has a ``default``; otherwise, it will return ``Nothing``
 		"""
 		...  # pragma: no cover
 
@@ -100,6 +95,9 @@ class Variable[A](ABC):
 		...  # pragma: no cover
 
 	def __eq__(self, other: "Variable") -> bool:
+		if not issubclass(type(other), Variable):
+			return False
+
 		return all(
 			[
 				self.name == other.name,
@@ -145,7 +143,7 @@ class BoundVariable[A](Variable):
 					)
 					self.__type = Some(ctype.val)
 					self.__inferred = True
-				elif ctype.is_warning:
+				elif ctype.is_warn:
 					log.warning(
 						f"Tried to infer type for BoundVariable {name} from val {val} and default {default.val}, but resultant type {ctype.val} seems overly broad. Using it anyway."
 					)
@@ -159,7 +157,7 @@ class BoundVariable[A](Variable):
 					self.__inferred = False
 		else:
 			# Type was explicitly provided
-			self.__type = var_type
+			self.__type = Option.make_from(var_type)
 			self.__inferred = False
 
 	@property
@@ -175,8 +173,8 @@ class BoundVariable[A](Variable):
 		return self.__desc
 
 	@property
-	def val(self) -> A:
-		return self.__val
+	def val(self) -> Option[A]:
+		return Some(self.__val)
 
 	@property
 	def var_type(self) -> Option[type]:
@@ -202,6 +200,19 @@ class BoundVariable[A](Variable):
 				f" = {self.val}",
 				f" (default {self.default.val})" if self.default != Nothing() else "",
 				f": {self.desc.val}" if self.desc != Nothing() else "",
+			]
+		)
+
+	def __repr__(self) -> str:
+		return "".join(
+			[
+				"BoundVariable(",
+				f"{self.name}, ",
+				f"{self.val}, ",
+				f"{self.var_type}, ",
+				f"{self.desc}, ",
+				f"{self.default}",
+				")",
 			]
 		)
 
@@ -231,7 +242,7 @@ class UnboundVariable[A](Variable):
 				self.__type = Nothing()
 				self.__inferred = False
 		else:
-			self.__type = var_type
+			self.__type = Option.make_from(var_type)
 			self.__inferred = False
 
 	@property
@@ -247,8 +258,8 @@ class UnboundVariable[A](Variable):
 		return self.__desc
 
 	@property
-	def val(self) -> A:
-		raise TypeError("Tried to access `val` on an unbound variable!")
+	def val(self) -> Option[A]:
+		return self.default
 
 	@property
 	def var_type(self) -> Option[type]:
@@ -275,3 +286,42 @@ class UnboundVariable[A](Variable):
 				f": {self.desc.val}" if self.desc != Nothing() else "",
 			]
 		)
+
+	def __repr__(self) -> str:
+		return "".join(
+			[
+				"UnboundVariable(",
+				f"{self.name}, ",
+				f"{self.var_type}, ",
+				f"{self.desc}, ",
+				f"{self.default}",
+				")",
+			]
+		)
+
+
+def ensure_from_name(x: Variable | str) -> Variable:
+	"""
+	If ``x`` is a string, convert it to a ``Variable`` with that name.
+
+	In many cases, users are allowed to instantiate a ``Variable`` indirectly,
+	by providing the name of the ``Variable`` in place of the ``Variable``
+	itself. This reduces boilerplate, but requries extra checking to ensure that
+	the names are converted to ``Variable``'s. This function passes through
+	``Variable``'s while converting any strings to ``Variables``.
+
+	:param x: Either a ``Variable`` or a name
+	:returns: ``x`` if ``x`` is a ``Variable``; otherwise, an
+	    ``UnboundVariable`` with the name ``x``.
+	"""
+	return x if type_check(x, Variable) else UnboundVariable(x)
+
+
+def ensure_from_name_arr(xs: list[Variable | str]) -> list[Variable]:
+	"""
+	Convenience function to call ``ensure_from_name`` on a list.
+
+	:param xs: List of any combination of ``Variable``'s and names.
+	:returns: Array of ``Variables``.
+	"""
+	return [ensure_from_name(x) for x in xs]

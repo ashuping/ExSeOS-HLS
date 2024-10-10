@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from abc import ABC
 
-from exseos.types.Result import Okay, Warning, Error
+from exseos.types.Result import Okay, Warn, Fail
 from exseos.types import (
 	type_check,
 	common,
@@ -110,13 +110,13 @@ def test_common_t_child():
 
 
 def test_common_t_broad_related():
-	assert common_t(TestAbstractClass, TestUnrelatedAbstract) == Warning(
+	assert common_t(TestAbstractClass, TestUnrelatedAbstract) == Warn(
 		[BroadCommonTypeWarning([TestAbstractClass, TestUnrelatedAbstract], ABC)], ABC
 	)
 
 
 def test_common_t_unrelated():
-	assert common_t(TestSuperclass, TestUnrelatedClass) == Error(
+	assert common_t(TestSuperclass, TestUnrelatedClass) == Fail(
 		[NoCommonTypeError([TestSuperclass, TestUnrelatedClass])]
 	)
 
@@ -133,6 +133,6 @@ def test_common():
 	assert common(sup, sub1) == Okay(TestSuperclass)
 	assert common(sub2, sup) == Okay(TestSuperclass)
 	assert common(sub1, sub2) == Okay(TestSuperclass)
-	assert common(sub1, unr) == Error(
+	assert common(sub1, unr) == Fail(
 		[NoCommonTypeError([TestSubclass1, TestUnrelatedClass])]
 	)

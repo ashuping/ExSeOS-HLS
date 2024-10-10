@@ -3,6 +3,8 @@ exseos.data package
 
 Submodules
 ----------
+.. toctree::
+   :maxdepth: 12
 
 exseos.data.Variable module
 ---------------------------

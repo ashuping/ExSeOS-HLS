@@ -3,6 +3,8 @@ exseos.args package
 
 Submodules
 ----------
+.. toctree::
+   :maxdepth: 12
 
 exseos.args.ArgumentProvider module
 -----------------------------------

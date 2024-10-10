@@ -21,8 +21,8 @@ computation within ExSeOS.
 
 from exseos.data.Variable import Variable, UnboundVariable
 from exseos.types.Option import Option, Some, Nothing
+from exseos.types.Result import Result
 
-from dataclasses import dataclass
 from abc import ABC, abstractmethod
 
 
@@ -102,28 +102,31 @@ class Stage(ABC):
 		self.__to = _to
 
 	@abstractmethod
-	def run(self, inputs: list[Variable]) -> "StageResult":
+	def run(
+		self, inputs: tuple[Variable]
+	) -> Result[Exception, Exception, tuple[Variable]]:
 		"""
 		Run this ``stage``, returning a ``StageResult`` containing output
 		information.
 
 		:param inputs: A list of all ``Variables`` needed for this ``Stage`` to
 		    run.
-		:returns: A ``StageResult`` containing output ``Variable``s for this
+		:returns: A ``Result`` containing output ``Variable``s for this
 		    ``Stage``.
 		"""
 		...  # pragma: no cover
 
 	@property
-	def _input_bindings(self) -> list[Variable]:
-		"""A list of Input bindings for this stage. Used for internal wiring."""
+	def _input_bindings(self) -> tuple[Variable]:
+		"""
+		A tuple of input bindings for this stage. Used for internal wiring.
+		"""
 		return self.__inputs
 
 	@property
-	def _output_bindings(self) -> Option[list[Variable]]:
+	def _output_bindings(self) -> tuple[Variable]:
 		"""
-		An ``Option``'al list of output bindings for this stage. Used for
-		internal wiring.
+		A tuple of output bindings for this stage. Used for internal wiring.
 		"""
 		return self.__outputs
 
@@ -138,11 +141,3 @@ class Stage(ABC):
 		_to = (args, kwargs)
 
 		return type(self)(_to=_to, *self.__args, **self.__kwargs)
-
-
-@dataclass(frozen=True)
-class StageResult:
-	"""Holds the result of an executed ``Stage``."""
-
-	stage: Stage
-	outputs: tuple[Variable]
