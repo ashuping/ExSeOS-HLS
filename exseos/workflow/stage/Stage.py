@@ -106,7 +106,7 @@ class Stage(ABC):
 		self, inputs: tuple[Variable]
 	) -> Result[Exception, Exception, tuple[Variable]]:
 		"""
-		Run this ``stage``, returning a ``StageResult`` containing output
+		Run this ``stage``, returning a ``Result`` containing output
 		information.
 
 		:param inputs: A list of all ``Variables`` needed for this ``Stage`` to
