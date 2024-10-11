@@ -20,7 +20,7 @@ A sequence of operations.
 
 import random
 
-from exseos.data.Variable import Variable, UnboundVariable
+from exseos.types.Variable import Variable, UnboundVariable
 from exseos.types.Option import Some
 
 
@@ -76,7 +76,7 @@ class MakeWorkflow:
 		for kwarg, kwdefault in kwargs.items():
 			self.inputs.append(UnboundVariable(kwarg, default=Some(kwdefault)))
 
-	def output(self, *args):
+	def outputs(self, *args):
 		"""
 		Add one or more outputs to the ``Workflow``.
 

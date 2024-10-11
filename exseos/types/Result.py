@@ -367,65 +367,6 @@ class Fail[A, B](Result):
 		return f"Fail({self.errors}, {self.warnings})"
 
 
-def merge(
-	a: Result[A, B, C], b: Result[A, B, C], fn: Callable[[C, C], C]
-) -> Result[A, B, C]:
-	"""
-	Combine two ``Result``'s with a custom value-merge strategy.
-
-	This acts as the right-shift operator, except that the new ``Result``'s
-	``val`` (if applicable) is calculated based on a user-defined funciton
-	``fn``. Common merge strategies are defined in ``MergeStrategies``.
-
-	:param a: The 'left-side' ``Result``
-	:param b: The 'right-side' ``Result``
-	:param fn: The merge strategy to use. If both ``a`` and ``b`` have a ``val``
-	    field, then ``fn`` is called in the form ``fn(a.val, b.val)``. It should
-	    return the resultant ``val`` for the combined ``Result``.
-	:returns: The ``Result`` created by combining ``a`` and ``b``
-	"""
-	if a.is_okay and b.is_okay:
-		return Okay(fn(a.val, b.val))
-	elif (not a.is_fail) and (not b.is_fail):
-		return Warn(
-			(a.warnings if not a.is_okay else [])
-			+ (b.warnings if not b.is_okay else []),
-			fn(a.val, b.val),
-		)
-	else:
-		return Fail(
-			(a.errors if a.is_fail else []) + (b.errors if b.is_fail else []),
-			(a.warnings if not a.is_okay else [])
-			+ (b.warnings if not b.is_okay else []),
-		)
-
-
-def merge_all(*args: List[Result[A, B, C]], fn: Callable[[C, C], C]) -> Result[A, B, C]:
-	"""
-	As ``merge()``, but it flattens a list of ``Result``'s.
-
-	If ``args`` has zero elements, this will return ``Okay(None)``.
-
-	If ``args`` has only one element, it will return that element unchanged.
-
-	If ``args`` has more than one element, then the list will be processed in
-	sequence using ``fn``.
-
-	:param *args: List of ``Result``'s to flatten.
-	:param fn: Merge strategy (see ``merge()`` for more information)
-	:returns: The final ``Result`` of merging all elements.
-	"""
-	if len(args) == 0:
-		return Okay(None)
-	elif len(args) == 1:
-		return args[0]
-	else:
-		res = args[0]
-		for r in args[1:]:
-			res = merge(res, r, fn)
-		return res
-
-
 class MergeStrategies:
 	"""
 	Static class that holds functions to be used in ``merge()``.
@@ -469,6 +410,69 @@ class MergeStrategies:
 		except Exception:
 			(c := [a]).append(b)
 			return c
+
+
+def merge(
+	a: Result[A, B, C],
+	b: Result[A, B, C],
+	fn: Callable[[C, C], C] = MergeStrategies.KEEP_LAST,
+) -> Result[A, B, C]:
+	"""
+	Combine two ``Result``'s with a custom value-merge strategy.
+
+	This acts as the right-shift operator, except that the new ``Result``'s
+	``val`` (if applicable) is calculated based on a user-defined funciton
+	``fn``. Common merge strategies are defined in ``MergeStrategies``.
+
+	:param a: The 'left-side' ``Result``
+	:param b: The 'right-side' ``Result``
+	:param fn: The merge strategy to use. If both ``a`` and ``b`` have a ``val``
+	    field, then ``fn`` is called in the form ``fn(a.val, b.val)``. It should
+	    return the resultant ``val`` for the combined ``Result``.
+	:returns: The ``Result`` created by combining ``a`` and ``b``
+	"""
+	if a.is_okay and b.is_okay:
+		return Okay(fn(a.val, b.val))
+	elif (not a.is_fail) and (not b.is_fail):
+		return Warn(
+			(a.warnings if not a.is_okay else [])
+			+ (b.warnings if not b.is_okay else []),
+			fn(a.val, b.val),
+		)
+	else:
+		return Fail(
+			(a.errors if a.is_fail else []) + (b.errors if b.is_fail else []),
+			(a.warnings if not a.is_okay else [])
+			+ (b.warnings if not b.is_okay else []),
+		)
+
+
+def merge_all(
+	*args: List[Result[A, B, C]], fn: Callable[[C, C], C] = MergeStrategies.KEEP_LAST
+) -> Result[A, B, C]:
+	"""
+	As ``merge()``, but it flattens a list of ``Result``'s.
+
+	If ``args`` has zero elements, this will return ``Okay(None)``.
+
+	If ``args`` has only one element, it will return that element unchanged.
+
+	If ``args`` has more than one element, then the list will be processed in
+	sequence using ``fn``.
+
+	:param *args: List of ``Result``'s to flatten.
+	:param fn: Merge strategy (see ``merge()`` for more information)
+	:returns: The final ``Result`` of merging all elements.
+	"""
+	if len(args) == 0:
+		return Okay(None)
+	elif len(args) == 1:
+		return args[0]
+	else:
+		res = args[0]
+		for r in args[1:]:
+			res = merge(res, r, fn)
+		return res
 
 
 def __rshift__(self: Result[A, B, C], o: Result[A, B, C]) -> Result[A, B, C]:

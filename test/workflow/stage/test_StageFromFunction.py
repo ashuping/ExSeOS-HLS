@@ -16,14 +16,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from exseos.data.Variable import BoundVariable, UnboundVariable
+from exseos.types import TypeCheckWarning
+from exseos.types.Option import Some
+from exseos.types.Result import Okay, Warn
+from exseos.types.Variable import BoundVariable, UnboundVariable, VariableSet
 from exseos.workflow.stage.StageFromFunction import (
 	make_StageFromFunction,
 	ReturnBindingMismatchWarning,
 )
-from exseos.types import TypeCheckWarning
-from exseos.types.Option import Some
-from exseos.types.Result import Okay, Warn
 
 
 def test_basic_function():
@@ -33,7 +33,7 @@ def test_basic_function():
 
 	stage = make_StageFromFunction(fn, ("2x",))(UnboundVariable("x"))
 
-	res = stage.run((BoundVariable("x", 2),))
+	res = stage.run(VariableSet((BoundVariable("x", 2),)))
 
 	expect = Okay((BoundVariable("2x", 4),))
 
@@ -50,7 +50,7 @@ def test_multi_return():
 
 	stage = make_StageFromFunction(fn, ("2x", "str2x"))(UnboundVariable("x"))
 
-	res = stage.run((BoundVariable("x", 2),))
+	res = stage.run(VariableSet((BoundVariable("x", 2),)))
 
 	expect = Okay((BoundVariable("2x", 4), BoundVariable("str2x", "4")))
 
@@ -69,7 +69,7 @@ def test_type_mismatch():
 		UnboundVariable("x")
 	)
 
-	res = stage.run((BoundVariable("x", 2),))
+	res = stage.run(VariableSet((BoundVariable("x", 2),)))
 
 	expect = Warn(
 		[
@@ -101,7 +101,7 @@ def test_too_many_returns():
 		),
 	)(UnboundVariable("x"))
 
-	res = stage.run((BoundVariable("x", 2),))
+	res = stage.run(VariableSet((BoundVariable("x", 2),)))
 
 	expect = Warn(
 		[ReturnBindingMismatchWarning(stage, 3, 2)],
@@ -130,7 +130,7 @@ def test_too_few_returns():
 		),
 	)(UnboundVariable("x"))
 
-	res = stage.run((BoundVariable("x", 2),))
+	res = stage.run(VariableSet((BoundVariable("x", 2),)))
 
 	expect = Warn(
 		[ReturnBindingMismatchWarning(stage, 1, 2)],
@@ -178,5 +178,5 @@ def test_side_effecting_function():
 	assert stage_cls.input_vars == ()
 	assert stage_cls.output_vars == ()
 
-	assert stage_cls().run(()) == Okay(())
+	assert stage_cls().run(VariableSet(())) == Okay(())
 	assert fn_run_count == 1

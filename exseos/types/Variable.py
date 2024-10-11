@@ -22,6 +22,7 @@ used to store inputs, outputs, and intermediate values flowing between
 
 from exseos.types import common, type_check
 from exseos.types.Option import Option, Nothing, Some
+from exseos.types.Result import Result, Okay, Warn, Fail, merge_all
 
 from abc import ABC, abstractmethod
 import logging
@@ -227,9 +228,12 @@ class UnboundVariable[A](Variable):
 		desc: Option[str] = Nothing(),
 		default: Option[A] = Nothing(),
 	):
+		desc = Option.make_from(desc)
+		default = Option.make_from(default)
+
 		self.__name = name
-		self.__desc = Option.make_from(desc)
-		self.__default = Option.make_from(default)
+		self.__desc = desc
+		self.__default = default
 
 		if var_type == Nothing():
 			if default != Nothing():
@@ -300,6 +304,219 @@ class UnboundVariable[A](Variable):
 		)
 
 
+class UnboundVariableError(Exception):
+	"""
+	An ``UnboundVariable`` with no default value was provided where a
+	``BoundVariable`` or an ``UnboundVariable`` with a default is required.
+	"""
+
+	def __init__(self, var: Variable, note: str = ""):
+		msg = (
+			f"Can't get value of {var}, because it is unbound and has no "
+			+ "defaults!"
+			+ f" {note}"
+			if note
+			else ""
+		)
+
+		super().__init__(msg)
+
+		self.var = var
+		self.note = note
+
+
+class AmbiguousVariableError(Exception):
+	"""
+	Used when there is more than one candidate ``Variable`` for a situation -
+	for example, when a ``VariableSet`` is constructed using multiple
+	``Variable``'s with the same name.
+	"""
+
+	def __init__(self, name: str, candidates: tuple[Variable] = (), note: str = ""):
+		msg = (
+			f"Couldn't select an unambiguous candidate for {name} "
+			+ (
+				f"(candidates: {candidates})."
+				if candidates
+				else "(no candidates found)."
+			)
+			+ f" {note}"
+			if note
+			else ""
+		)
+
+		super().__init__(msg)
+
+		self.name = name
+		self.candidates = candidates
+		self.note = note
+
+
+class VariableSet:
+	"""
+	Encapsulates a set of ``Variable``'s in a way that makes it easier to access
+	them.
+
+	To access a ``Variable``, use ``get_var`` or just access it as an attribute.
+	For example:
+
+	.. code-block:: python
+
+	    >>> my_set = VariableSet((BoundVariable('x', 1), BoundVariable('y', 2)))
+	    >>> my_set.get_var('x')
+	    1
+	    >>> my_set.y
+	    2
+
+	Note that if a ``Variable`` isn't present this will raise an
+	``AttributeError``, and if the ``Variable`` is present but has no value,
+	this will raise an ``UnboundVariableError``.
+
+	If an issue occured while initializing the ``VariableSet``, it will be
+	stored in the ``status`` attribute.
+
+	Stored ``Variable``'s can be checked automatically, to ensure that they
+	won't return errors on access. To do this, call ``check()`` with the
+	``Variable``'s to check, or ``check_all()`` to check *all* ``Variable``'s
+	present in this ``VariableSet``.
+	"""
+
+	def __init__(self, vars: tuple[Variable]):
+		self.__status = Okay(None)
+
+		var_pairs = [(v.name, v) for v in vars]
+		var_dict = dict(var_pairs)
+
+		if len(var_dict.items()) < len(var_pairs):
+			buckets = []
+			var_names = [v.name for v in vars]
+			for dex, v in enumerate(vars):
+				if var_names[dex:].count(v.name) > 1:
+					buckets.append(tuple([vr for vr in vars if vr.name == v.name]))
+
+			for dupe_bucket in buckets:
+				# print(dupe_bucket)
+				self.__status <<= Warn(
+					[
+						AmbiguousVariableError(
+							dupe_bucket[0].name,
+							dupe_bucket,
+							"(while constructing a `VariableSet`)",
+						)
+					],
+					None,
+				)
+
+		self.__vars = var_dict
+
+	@property
+	def status(self) -> Result[Exception, Exception, None]:
+		"""
+		Return the status of the ``VariableSet``. This will include any
+		warnings produced while the set was generated.
+
+		:returns: The result of generating the set.
+		"""
+		return self.__status
+
+	@property
+	def vars(self) -> dict[str, Variable]:
+		"""
+		Return the mapping between ``Variable`` name and ``Variable``'s.
+
+		:returns: The ``Variable`` name mapping.
+		"""
+		return self.__vars
+
+	def __check_one(
+		self, to_check: str | Variable
+	) -> Result[Exception, Exception, None]:
+		"""
+		Check a single ``Variable``. Users should use ``check()`` instead.
+
+		:param v: ``Variable`` or name to check
+		:returns: ``Okay(None)`` if the ``Variable`` exists and has a value;
+		    ``Fail(AttributeError)`` if the ``Variable`` does not exist;
+		    ``Fail(UnboundVariableError)`` if it exists but has no value.
+		"""
+		v = to_check.name if type_check(to_check, Variable) else to_check
+
+		return (
+			Okay(None)
+			if v in self.__vars.keys() and self.__vars[v].val != Nothing()
+			else Fail(
+				[
+					UnboundVariableError(
+						self.__vars[v],
+						"(while retrieving a `Variable` from a `VariableSet`)",
+					)
+				]
+			)
+			if v in self.__vars.keys()
+			else Fail([AttributeError(f"No variable named {v} in this `VariableSet`!")])
+		)
+
+	def check(self, *args: list[str | Variable]) -> Result[Exception, Exception, None]:
+		"""
+		Check one or more ``Variable``'s in this ``VariableSet``. For each
+		``Variable`` that has no value (i.e. is unbound and has no default),
+		``Fail(UnboundVariableError)`` is added to ``Result``. If all
+		``Variable``'s are defined, ``Okay(None)`` is returned.
+
+		If one of the provided arguments does not match any of this
+		``VariableSet``'s ``Variable``'s, then ``Fail(AttributeError)`` is added
+		to the ``Result``.
+
+		:param *args: List of ``Variable``'s or variable names to check.
+		:returns: ``Okay(None)`` if all ``Variable``'s are defined; otherwise,
+		    ``Fail(UnboundVariableError)`` for every unbound ``Variable``.
+		"""
+		return merge_all(*[self.__check_one(arg) for arg in args])
+
+	def check_all(self) -> Result[Exception, Exception, None]:
+		"""
+		Check that all ``Variable``'s in this ``VariableSet`` have accessible
+		values. Functions otherwise like ``check()``
+
+
+		:returns: ``Okay(None)`` if all ``Variable``'s are defined; otherwise,
+		    ``Fail(UnboundVariableError)`` for every unbound ``Variable``.
+		"""
+		return self.check(*tuple(self.__vars.keys()))
+
+	def get_var(self, name: str) -> any:
+		"""
+		Retrieve an item from the built-in variable dictionary.
+
+		:param name: The ``Variable`` name to retrieve
+		:returns: The contents of the ``Variable``
+		:raises: ``UnboundVariableError`` if the ``Variable`` has no contents.
+		"""
+		if name in self.__vars.keys():
+			if self.__vars[name].val == Nothing():
+				raise UnboundVariableError(
+					self.__vars[name],
+					"(while retrieving a `Variable` from a `VariableSet`)",
+				)
+			else:
+				return self.__vars[name].val.val
+		else:
+			raise AttributeError(f"No variable named {name} in this `VariableSet`!")
+
+	def __getattr__(self, name: str) -> any:
+		"""
+		Shorthand for ``get_var(name)``. If the name of a variable conflicts
+		with a ``VariableSet`` function / property name (e.g. ``status``,
+		``check``, etc), then this won't work - call ``get_var()`` directly
+		instead.
+
+		:param name: The ``Variable`` name to retrieve
+		:returns: The contents of the ``Variable``
+		:raises: ``UnboundVariableError`` if the ``Variable has no contents.
+		"""
+		return self.get_var(name)
+
+
 def ensure_from_name(x: Variable | str) -> Variable:
 	"""
 	If ``x`` is a string, convert it to a ``Variable`` with that name.
@@ -325,3 +542,10 @@ def ensure_from_name_arr(xs: list[Variable | str]) -> list[Variable]:
 	:returns: Array of ``Variables``.
 	"""
 	return [ensure_from_name(x) for x in xs]
+
+
+def constant(val: any) -> BoundVariable:
+	"""
+	Convenience function to create a ``BoundVariable`` from a constant value.
+	"""
+	return BoundVariable(f"Constant::{val}", val)

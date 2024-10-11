@@ -21,11 +21,12 @@ quickly converting existing code to use ExSeOS.
 To construct a stage from a function, use ``make_StageFromFunction``.
 """
 
-from exseos.data.Variable import (
+from exseos.types.Variable import (
 	Variable,
 	UnboundVariable,
 	BoundVariable,
 	ensure_from_name_arr,
+	VariableSet,
 )
 from exseos.types import type_check, TypeCheckWarning
 from exseos.types.Option import Some, Nothing
@@ -88,10 +89,10 @@ class ReturnBindingMismatchWarning(Warning):
 		self.num_outputs = num_outputs
 
 
-def _input_list_to_kwargs(input_list: tuple[Variable]) -> dict[str, any]:
+def _input_list_to_kwargs(input_list: VariableSet) -> dict[str, any]:
 	kwargs = {}
-	for v in input_list:
-		kwargs[v.name] = v.val.val
+	for name, var in input_list.vars.items():
+		kwargs[name] = var.val.val
 
 	return kwargs
 
@@ -167,7 +168,11 @@ class StageFromFunction(Stage):
 		"""The actual function encapsulated in a ``StageFromFunction``."""
 		...  # pragma: no cover
 
-	def run(self, inputs: tuple[Variable]) -> Result:
+	def run(self, inputs: VariableSet) -> Result:
+		res = inputs.check_all()
+		if res.is_fail:
+			return res
+
 		try:
 			rval = self.inner_function(**_input_list_to_kwargs(inputs))
 		except Exception as e:

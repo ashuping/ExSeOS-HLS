@@ -19,7 +19,7 @@ A ``Stage`` is a single step in a ``Workflow``. It is the base unit of
 computation within ExSeOS.
 """
 
-from exseos.data.Variable import Variable, UnboundVariable
+from exseos.types.Variable import Variable, UnboundVariable, VariableSet
 from exseos.types.Option import Option, Some, Nothing
 from exseos.types.Result import Result
 
@@ -102,14 +102,12 @@ class Stage(ABC):
 		self.__to = _to
 
 	@abstractmethod
-	def run(
-		self, inputs: tuple[Variable]
-	) -> Result[Exception, Exception, tuple[Variable]]:
+	def run(self, inputs: VariableSet) -> Result[Exception, Exception, tuple[Variable]]:
 		"""
 		Run this ``stage``, returning a ``Result`` containing output
 		information.
 
-		:param inputs: A list of all ``Variables`` needed for this ``Stage`` to
+		:param inputs: A set of all ``Variables`` needed for this ``Stage`` to
 		    run.
 		:returns: A ``Result`` containing output ``Variable``'s for this
 		    ``Stage``.
@@ -141,3 +139,36 @@ class Stage(ABC):
 		_to = (args, kwargs)
 
 		return type(self)(_to=_to, *self.__args, **self.__kwargs)
+
+	def depends(self, *args: tuple[str]) -> "Stage":
+		"""
+		Define one or more dependencies needed by this ``Stage``.
+
+		In a ``Workflow``, ``Stage``'s may be reorganized and/or run in parallel
+		if they have no dependencies. Matching input and output variables
+		between two stages automatically count as dependencies; however, if
+		stages have dependencies based on side effects (e.g. one stage creates a
+		file that another stage needs), ``depends()`` / ``provides()`` can be
+		used to establish explicit dependencies. If a stage ``depends()`` on
+		something, it will not run until another stage ``provides()`` it. If
+		multiple stages provide the same dependency, only one of them has to run
+		for the dependency to be considered met.
+
+		:param *args: List of explicit dependencies (as strings) that this
+		    ``Stage`` needs.
+		:returns: A ``Stage`` with the requested dependencies added.
+		"""
+		...
+
+	def provides(self, *args: tuple[str]) -> "Stage":
+		"""
+		Define one or more dependencies provided by this ``Stage``.
+
+		Along with ``depends()``, this function provides explicit dependency
+		declaration between stages to assist with parallelism support.
+
+		:param *args: List of explicit dependencies (as strings) that this
+		    ``Stage`` provides.
+		:returns: A ``Stage`` with the requested dependencies added.
+		"""
+		...
