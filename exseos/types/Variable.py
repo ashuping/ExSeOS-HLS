@@ -516,6 +516,26 @@ class VariableSet:
 		"""
 		return self.get_var(name)
 
+	def __eq__(self, other: "VariableSet") -> bool:
+		if not issubclass(type(other), VariableSet):
+			return False
+
+		return self.vars == other.vars
+
+	def __str__(self) -> str:
+		return (
+			"VariableSet {\n"
+			+ "".join([f"  {k}: {v}\n" for (k, v) in self.vars.items()])
+			+ "}"
+		)
+
+	def __repr__(self) -> str:
+		return (
+			"VariableSet("
+			+ ", ".join([f"{repr(v)}" for (_, v) in self.vars.items()])
+			+ ")"
+		)
+
 
 def ensure_from_name(x: Variable | str) -> Variable:
 	"""

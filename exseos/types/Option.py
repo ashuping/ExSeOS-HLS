@@ -134,6 +134,8 @@ class Nothing(Option):
 class Some[A](Option):
 	"""Represents an ``Option`` that contains a concrete value."""
 
+	__match_args__ = ("val",)
+
 	def __init__(self, val: A):
 		self.__val = val
 

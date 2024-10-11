@@ -100,5 +100,8 @@ class MakeWorkflow:
 		"""
 		Instantiate the ``Workflow`` and bind the provided arguments to its
 		inputs.
+
+		TODO: We should validate the ``Stage``'s, to make sure that their inputs
+		and outputs are well-formed and avoid issues down the line.
 		"""
 		raise NotImplementedError

@@ -85,20 +85,20 @@ class Stage(ABC):
 		"""
 		self.__inputs = tuple(
 			[
-				_process_stage_io(dex, i, args, kwargs)
+				(i, _process_stage_io(dex, i, args, kwargs))
 				for dex, i in enumerate(self.input_vars)
 			]
 		)
 
 		self.__outputs = tuple(
 			[
-				_process_stage_io(dex, i, _to[0], _to[1])
-				for dex, i in enumerate(self.output_vars)
+				(o, _process_stage_io(dex, o, _to[0], _to[1]))
+				for dex, o in enumerate(self.output_vars)
 			]
 		)
 
 		self.__args = tuple(args)
-		self.__kwargs = tuple(kwargs)
+		self.__kwargs = kwargs
 		self.__to = _to
 
 	@abstractmethod
@@ -115,18 +115,36 @@ class Stage(ABC):
 		...  # pragma: no cover
 
 	@property
-	def _input_bindings(self) -> tuple[Variable]:
+	def _input_bindings(self) -> tuple[Variable, Option[Variable]]:
 		"""
 		A tuple of input bindings for this stage. Used for internal wiring.
+
+		Bindings take the form ``(internal_var, Option[bound_var])``.
+
+		:meta private:
 		"""
 		return self.__inputs
 
 	@property
-	def _output_bindings(self) -> tuple[Variable]:
+	def _output_bindings(self) -> tuple[Variable, Option[Variable]]:
 		"""
 		A tuple of output bindings for this stage. Used for internal wiring.
+
+		Bindings take the form ``(internal_var, Option[bound_var])``.
+
+		:meta private:
 		"""
 		return self.__outputs
+
+	@property
+	def _is_implicit(self) -> bool:
+		"""
+		``True`` iff the stage is marked as implicit-binding. Used for internal
+		wiring.
+
+		:meta private:
+		"""
+		...
 
 	def to(self, *args, **kwargs) -> "Stage":
 		"""
@@ -170,5 +188,29 @@ class Stage(ABC):
 		:param *args: List of explicit dependencies (as strings) that this
 		    ``Stage`` provides.
 		:returns: A ``Stage`` with the requested dependencies added.
+		"""
+		...
+
+	def bind_implicitly(self) -> "Stage":
+		"""
+		Mark this stage as implicit-binding. This allows its inputs to be
+		matched to previous stages' outputs automatically, without needing to
+		explicitly use ``to`` and constructor params.
+
+		This is not recommended, as it can easily lead to ambiguity and highly
+		dependent on the stage's input names.
+
+		:returns: A ``Stage`` marked as implicit-binding
+		"""
+		...
+
+	def always(self) -> "Stage":
+		"""
+		Mark this stage as 'always-run.' Normally, the result of a ``Stage`` is
+		cached for future stages unless its inputs change. This directive
+		indicates that this stage has a side-effect that requires it to be
+		re-run every time.
+
+		:returns: This ``Stage`` marked as always-run
 		"""
 		...

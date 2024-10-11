@@ -57,8 +57,8 @@ For a more customizeable combination operator, see the ``merge()`` function.
 
 from exseos.types.ComparableError import ComparableError
 
-from typing import TypeVar, Callable, List
 from abc import ABC, abstractmethod
+from typing import TypeVar, Callable, List
 
 A = TypeVar("A")
 B = TypeVar("B")
@@ -211,6 +211,8 @@ class Okay[C](Result):
 	Has a value, but no warnings or errors
 	"""
 
+	__match_args__ = ("val",)
+
 	def __init__(self, val: C):
 		self.__val = val
 
@@ -258,8 +260,10 @@ class Warn[B, C](Result):
 	Has a value and warnings, but no errors
 	"""
 
-	def __init__(self, warn: List[B], val: C):
-		self.__warn = warn
+	__match_args__ = ("warnings", "val")
+
+	def __init__(self, warnings: List[B], val: C):
+		self.__warn = warnings
 		self.__val = val
 
 	@property
@@ -311,6 +315,8 @@ class Fail[A, B](Result):
 
 	Has warnings and errors, but no value.
 	"""
+
+	__match_args__ = ("errors", "warnings")
 
 	def __init__(self, errors: List[A], warnings: List[B] = []):
 		self.__warn = warnings
