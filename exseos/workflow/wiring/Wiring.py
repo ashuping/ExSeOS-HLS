@@ -322,7 +322,7 @@ def _find_binding_path(
 	for dex, stage in enumerate(reversed(stages)):
 		found = stage.get_by_wire(to_find_wire_name)
 		if found.has_val:
-			return Some(f"/stage/{len(stages) - (1 + dex)}/{to_find_wire_name}")
+			return Some(f"/stages/{len(stages) - (1 + dex)}/{to_find_wire_name}")
 
 	found = inputs.get_by_wire(to_find_wire_name)
 	if found.has_val:
@@ -375,7 +375,7 @@ class Wiring:
 			self.__stages,
 			self.__wires,
 			self.__status,
-			WiredStageIO.from_global_io(inputs),
+			Some(WiredStageIO.from_global_io(inputs)),
 			self.__bound_intermediate_outputs,
 		)
 
@@ -428,12 +428,15 @@ class Wiring:
 		self, pth: str
 	) -> Result[Exception, Exception, WiredStageVariable]:
 		segs = pth.split("/")
-		match segs:
+		if len(segs) < 2:
+			return Fail([LookupError(pth)])
+
+		match segs[1]:
 			case "inputs":
-				if len(segs) != 2:
+				if len(segs) != 3:
 					return Fail([LookupError(pth, "(no such input)")])
 
-				wire_name = segs[1]
+				wire_name = segs[2]
 
 				if (
 					self.__bound_inputs.has_val
@@ -445,16 +448,16 @@ class Wiring:
 				else:
 					return Fail([LookupError(pth, "(no such input)")])
 			case "stages":
-				if len(segs) != 3:
+				if len(segs) != 4:
 					return Fail([LookupError(pth, "(no such stage variable)")])
 
-				_, stage_index, wire_name = segs
+				_, _, stage_index, wire_name = segs
 
 				if (
 					len(self.__bound_intermediate_outputs) > int(stage_index)
 					and (
 						matched := self.__bound_intermediate_outputs[
-							stage_index
+							int(stage_index)
 						].get_by_wire(wire_name)
 					).has_val
 				):

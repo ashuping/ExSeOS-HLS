@@ -60,9 +60,14 @@ def test_wire_real_sequence():
 	assert random_num.is_bound
 	assert type(random_num.val.val) is int
 
-	assert wiring.get_stage_inputs(1) == Okay(
+	expect = Okay(
 		VariableSet((BoundVariable("x", random_num.val.val), BoundVariable("pow", 2)))
 	)
+
+	print(f'expected: {expect}')
+	print(f'actual  : {wiring.get_stage_inputs(1)}')
+
+	assert wiring.get_stage_inputs(1) == expect
 
 	wiring = wiring.bind_stage(1, sequence[1].run(wiring.get_stage_inputs(1).val).val)
 
