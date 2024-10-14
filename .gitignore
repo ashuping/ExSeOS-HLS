@@ -1,5 +1,6 @@
-# Jupyter notebook for testing
+# Files used for local testing
 test.ipynb
+test.py
 
 # Virtual environment
 venv/

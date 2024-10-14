@@ -4,8 +4,8 @@ from exseos.types.Variable import BoundVariable, UnboundVariable, VariableSet
 from exseos.workflow.stage.Stage import Stage
 from exseos.workflow.wiring.Wiring import Wiring
 
-import pytest
 import random
+import pytest
 
 
 class RaiseToPower(Stage):
@@ -22,7 +22,7 @@ class RaiseToPower(Stage):
 		if res.is_fail:
 			return res
 
-		return Okay((self.output_vars[0].bind(inputs.x**inputs.p),))
+		return Okay((self.output_vars[0].bind(inputs.x**inputs.pow),))
 
 
 class MakeBase(Stage):
@@ -33,8 +33,8 @@ class MakeBase(Stage):
 		return Okay((self.output_vars[0].bind(random.randint(1, 100)),))
 
 
-@pytest.mark.xfail
-def test_wire_real_sequence():
+@pytest.mark.integration
+def test_wire_integration():
 	sequence = (MakeBase().to("my_x"), RaiseToPower("my_x", "my_pow").to("my_res"))
 
 	input_vars = (UnboundVariable("my_pow"),)
@@ -61,11 +61,18 @@ def test_wire_real_sequence():
 	assert type(random_num.val.val) is int
 
 	expect = Okay(
-		VariableSet((BoundVariable("x", random_num.val.val), BoundVariable("pow", 2)))
+		VariableSet(
+			(
+				BoundVariable(
+					"x", random_num.val.val, int, "Int to raise to ``pow``.", 0
+				),
+				BoundVariable("pow", 2, int, "Power to raise ``x`` to.", 1),
+			)
+		)
 	)
 
-	print(f'expected: {expect}')
-	print(f'actual  : {wiring.get_stage_inputs(1)}')
+	print(f"expected: {expect}")
+	print(f"actual  : {wiring.get_stage_inputs(1)}")
 
 	assert wiring.get_stage_inputs(1) == expect
 

@@ -122,10 +122,14 @@ class BoundVariable[A](Variable):
 		desc: Option[str] = Nothing(),
 		default: Option[A] = Nothing(),
 	):
+		var_type = Option.make_from(var_type)
+		desc = Option.make_from(desc)
+		default = Option.make_from(default)
+
 		self.__name = name
 		self.__val = val
-		self.__desc = Option.make_from(desc)
-		self.__default = Option.make_from(default)
+		self.__desc = desc
+		self.__default = default
 
 		if var_type == Nothing():
 			if default == Nothing():

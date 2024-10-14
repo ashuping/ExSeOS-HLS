@@ -56,6 +56,7 @@ For a more customizeable combination operator, see the ``merge()`` function.
 """
 
 from exseos.types.ComparableError import ComparableError
+from exseos.types.StackTraced import StackTraced
 
 from abc import ABC, abstractmethod
 from typing import TypeVar, Callable, List
@@ -80,6 +81,9 @@ class Result[A, B, C](ABC):
 
 	``err`` of type ``A`` represents fatal errors. It is only present in
 	``Fail`` types.
+
+	Note that Result stores stack-trace information for warnings and errors,
+	regardless of whether they are Exceptions or not.
 	"""
 
 	@property
@@ -128,6 +132,18 @@ class Result[A, B, C](ABC):
 
 	@property
 	@abstractmethod
+	def warnings_traced(self) -> List[StackTraced[B]]:
+		"""
+		As ``warnings()``  (with all the caveats), except that it returns
+		``StackTraced`` objects which include stack-trace information.
+
+		:raises TypeError: if called on an ``Okay``
+		"""
+
+	...  # pragma: no cover
+
+	@property
+	@abstractmethod
 	def errors(self) -> List[A]:
 		"""
 		Return the list of fatal errors generated during the computation.
@@ -135,6 +151,17 @@ class Result[A, B, C](ABC):
 		This is only present for ``Fail`` types.
 
 		:raises TypeError: if called on an ``Okay`` or ``Warning``
+		"""
+		...  # pragma: no cover
+
+	@property
+	@abstractmethod
+	def errors_traced(self) -> List[StackTraced[A]]:
+		"""
+		As ``errors()`` (with all the caveats), except that it returns
+		``StackTraced`` objects which include stack-trace information.
+
+		:raises: TypeError: if called on an ``Okay`` or ``Warning``
 		"""
 		...  # pragma: no cover
 
@@ -237,8 +264,16 @@ class Okay[C](Result):
 		raise TypeError("Can't return warnings from `Okay`!")
 
 	@property
+	def warnings_traced(self) -> List[B]:
+		raise TypeError("Can't return stack-traced warnings from `Okay`!")
+
+	@property
 	def errors(self) -> List[A]:
 		raise TypeError("Can't return errors from `Okay`!")
+
+	@property
+	def errors_traced(self) -> List[A]:
+		raise TypeError("Can't return stack-traced errors from `Okay`!")
 
 	def map(self, f: Callable[[C], D]) -> Result[A, B, D]:
 		return Okay(f(self.__val))
@@ -250,7 +285,7 @@ class Okay[C](Result):
 		return f"Result.Okay[{self.val.__class__.__name__}]({self.val})"
 
 	def __repr__(self) -> str:
-		return f"Okay({self.val})"
+		return f"Okay({repr(self.val)})"
 
 
 class Warn[B, C](Result):
@@ -263,7 +298,7 @@ class Warn[B, C](Result):
 	__match_args__ = ("warnings", "val")
 
 	def __init__(self, warnings: List[B], val: C):
-		self.__warn = warnings
+		self.__warn = [StackTraced.encapsulate(w) for w in warnings]
 		self.__val = val
 
 	@property
@@ -284,11 +319,19 @@ class Warn[B, C](Result):
 
 	@property
 	def warnings(self) -> List[B]:
+		return [w.val for w in self.__warn]
+
+	@property
+	def warnings_traced(self) -> List[B]:
 		return self.__warn
 
 	@property
 	def errors(self) -> List[A]:
 		raise TypeError("Can't return errors from `Warn`!")
+
+	@property
+	def errors_traced(self) -> List[A]:
+		raise TypeError("Can't return stack-traced errors from `Warn`!")
 
 	def map(self, f: Callable[[C], D]) -> Result[A, B, D]:
 		return Warn(self.__warn, f(self.__val))
@@ -319,8 +362,8 @@ class Fail[A, B](Result):
 	__match_args__ = ("errors", "warnings")
 
 	def __init__(self, errors: List[A], warnings: List[B] = []):
-		self.__warn = warnings
-		self.__err = errors
+		self.__warn = [StackTraced.encapsulate(w) for w in warnings]
+		self.__err = [StackTraced.encapsulate(e) for e in errors]
 
 	@property
 	def is_okay(self) -> bool:
@@ -340,10 +383,18 @@ class Fail[A, B](Result):
 
 	@property
 	def warnings(self) -> List[B]:
+		return [w.val for w in self.__warn]
+
+	@property
+	def warnings_traced(self) -> List[StackTraced[B]]:
 		return self.__warn
 
 	@property
 	def errors(self) -> List[A]:
+		return [e.val for e in self.__err]
+
+	@property
+	def errors_traced(self) -> List[StackTraced[A]]:
 		return self.__err
 
 	def map(self, f: Callable[[C], D]) -> Result[A, B, D]:
@@ -454,7 +505,9 @@ def merge(
 
 
 def merge_all(
-	*args: List[Result[A, B, C]], fn: Callable[[C, C], C] = MergeStrategies.KEEP_LAST
+	*args: List[Result[A, B, C]],
+	fn: Callable[[C, C], C] = MergeStrategies.KEEP_LAST,
+	empty: any = None,
 ) -> Result[A, B, C]:
 	"""
 	As ``merge()``, but it flattens a list of ``Result``'s.
@@ -471,7 +524,7 @@ def merge_all(
 	:returns: The final ``Result`` of merging all elements.
 	"""
 	if len(args) == 0:
-		return Okay(None)
+		return Okay(empty)
 	elif len(args) == 1:
 		return args[0]
 	else:

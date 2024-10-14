@@ -20,9 +20,11 @@ A ``Wiring`` object contains a lookup table that matches intermediate
 """
 
 from exseos.types.Option import Option, Some, Nothing
-from exseos.types.Result import Result, Okay, Fail, merge_all, MergeStrategies
+from exseos.types.Result import Result, Okay, Warn, Fail, merge_all, MergeStrategies
 from exseos.types.Variable import Variable, VariableSet
 from exseos.workflow.stage.Stage import Stage
+from exseos.workflow.wiring.WiredStageVariable import WiredStageVariable
+from exseos.workflow.wiring.WiredVariableSet import WiredVariableSet
 
 from typing import Callable
 
@@ -145,159 +147,6 @@ class NoBinding(WireBinding):
 	pass
 
 
-class WiredStageVariable:
-	__match_args__ = ("wire_name", "wire_var", "local_name", "local_var")
-
-	def __init__(self, wire_var: Option[Variable], local_var: Variable):
-		self.__wire_var = wire_var
-		self.__local_var = local_var
-
-	def bind(self, val: any) -> "WiredStageVariable":
-		"""
-		Bind this ``WiredStageVariable`` to a concrete value.
-
-		This will override both the local and global variables to have the new
-		value.
-		"""
-		return WiredStageVariable(
-			self.wire_var.map(lambda v: v.bind(val)),
-			self.local_var.bind(val),
-		)
-
-	@property
-	def has_wire(self) -> bool:
-		return self.__wire_var.has_val
-
-	@property
-	def wire_name(self) -> Option[str]:
-		return self.__wire_var.map(lambda v: v.name)
-
-	@property
-	def local_name(self) -> str:
-		return self.__local_var.name
-
-	@property
-	def wire_var(self) -> Variable:
-		return self.__wire_var
-
-	@property
-	def local_var(self) -> Variable:
-		return self.__local_var
-
-	@property
-	def is_bound(self) -> bool:
-		"""
-		Returns True if either the local or wire vars is bound
-		"""
-		return self.local_var.is_bound or (self.has_wire and self.wire_var.val.is_bound)
-
-	@property
-	def has_default(self) -> bool:
-		"""
-		Returns True if either the local or wire vars has a default value
-		"""
-		return self.local_var.default.has_val or (
-			self.has_wire and self.wire_var.val.default.has_val
-		)
-
-	@property
-	def val(self) -> Option[any]:
-		"""
-		Returns, in order of priority:
-		  - The Wire var's value
-		  - The Wire var's default
-		  - The local var's value (should never happen)
-		  - The local var's default
-		"""
-		if self.has_wire:
-			if self.wire_var.val.is_bound:
-				return Some(self.wire_var.val.val.val)
-			elif self.wire_var.val.default.has_val:
-				return Some(self.wire_var.val.default.val)
-		if self.local_var.is_bound:
-			return Some(self.local_var.val.val)  # should never happen
-		elif self.local_var.default.has_val:
-			return Some(self.local_var.default.val)
-
-		return Nothing()
-
-
-class WiredStageIO:
-	def __init__(self, vars: tuple[WiredStageVariable]):
-		self.__vars = vars
-
-	@property
-	def vars(self) -> tuple[WiredStageVariable]:
-		return self.__vars
-
-	def get_by_local(self, to_get: str | Variable) -> Option[WiredStageVariable]:
-		name = to_get.name if issubclass(type(to_get), Variable) else to_get
-		matches = [v for v in self.vars if v.local_name == name]
-		return Some(matches[0]) if len(matches) > 0 else Nothing()
-
-	def get_by_wire(self, to_get: str | Variable) -> Option[WiredStageVariable]:
-		name = to_get.name if issubclass(type(to_get), Variable) else to_get
-		matches = [
-			v for v in self.vars if v.wire_name.has_val and v.wire_name.val == name
-		]
-		return Some(matches[0]) if len(matches) > 0 else Nothing()
-
-	def bind(self, bind_to: tuple[Variable]) -> "WiredStageIO":
-		"""
-		Bind a set of variables to this ``WiredStageIO``.
-
-		All variables with local-names matching those in ``bind_to`` will have
-		both their local and wire values updated; however, non-matching
-		variables in ``bind_to`` will not be added to the set.
-		"""
-		bind_to_names = [v.name for v in bind_to]
-		new_vars = []
-		for v in self.vars:
-			if v.local_name in bind_to_names:
-				dex = bind_to_names.index(v.local_name)
-				new_vars.append(v.bind(bind_to[dex].val.val))
-			else:
-				new_vars.append(v)
-
-		return WiredStageIO(tuple(new_vars))
-
-	@classmethod
-	def from_input(cls, stage: Stage) -> "WiredStageIO":
-		if stage._is_implicit:
-			return cls(
-				tuple([WiredStageVariable(Some(var), var) for var in stage.input_vars])
-			)
-		else:
-			return cls(
-				tuple(
-					[
-						WiredStageVariable(wvar, lvar)
-						for lvar, wvar in stage._input_bindings
-					]
-				)
-			)
-
-	@classmethod
-	def from_output(cls, stage: Stage) -> "WiredStageIO":
-		if stage._is_implicit:
-			return cls(
-				tuple([WiredStageVariable(Some(var), var) for var in stage.output_vars])
-			)
-		else:
-			return cls(
-				tuple(
-					[
-						WiredStageVariable(wvar, lvar)
-						for lvar, wvar in stage._output_bindings
-					]
-				)
-			)
-
-	@classmethod
-	def from_global_io(cls, vars: tuple[Variable]):
-		return cls(tuple([WiredStageVariable(Some(var), var) for var in vars]))
-
-
 class Wire:
 	__match_args__ = ("var", "binding")
 
@@ -315,8 +164,8 @@ class Wire:
 
 
 def _find_binding_path(
-	stages: tuple[WiredStageIO],
-	inputs: WiredStageIO,
+	stages: tuple[WiredVariableSet],
+	inputs: WiredVariableSet,
 	to_find_wire_name: str,
 ) -> Option[str]:
 	for dex, stage in enumerate(reversed(stages)):
@@ -331,20 +180,49 @@ def _find_binding_path(
 	return Nothing()
 
 
+def _validate_and_bind_results(
+	bind_to: WiredVariableSet, vars_to_bind: tuple[WiredStageVariable]
+) -> Result[Exception, Exception, tuple[Variable]]:
+	warnings = Okay(None)
+
+	wire_vars = [wv.wire_var.val for wv in vars_to_bind if wv.has_wire]
+
+	if len(wire_vars) < len(vars_to_bind):
+		warnings <<= Warn(
+			[
+				ValueError(
+					"While calculating stage inputs: "
+					+ "Wiring._resolve() returned Variables without "
+					+ "wire names! This is likely an internal bug!"
+				)
+			],
+			None,
+		)
+
+	return (
+		Okay(bind_to.bind_wire(wire_vars))
+		.map(lambda wsvars: [v.local_var for v in wsvars.vars])
+		.map(lambda vars: VariableSet(tuple(vars)))
+		<< warnings
+	)
+
+
 class Wiring:
 	def __init__(
 		self,
-		inputs: WiredStageIO,
-		outputs: WiredStageIO,
-		stages: tuple[WiredStageIO],
+		inputs: WiredVariableSet,
+		outputs: WiredVariableSet,
+		stage_inputs: tuple[WiredVariableSet],
+		stage_outputs: tuple[WiredVariableSet],
 		wires: tuple[Wire],
 		wire_status: Result[Exception, Exception, None],
-		bound_inputs: Option[WiredStageIO] = Nothing(),
-		bound_intermediate_outputs: tuple[WiredStageIO] = (),
+		bound_inputs: Option[WiredVariableSet] = Nothing(),
+		bound_intermediate_outputs: tuple[WiredVariableSet] = (),
 	):
 		self.__inputs = inputs
 		self.__outputs = outputs
-		self.__stages = stages
+		self.__stage_inputs = stage_inputs
+		self.__stage_outputs = stage_outputs
 		self.__wires = wires
 
 		self.__bound_inputs = bound_inputs
@@ -361,21 +239,22 @@ class Wiring:
 		return self.__wires
 
 	@property
-	def bound_inputs(self) -> Option[WiredStageIO]:
+	def bound_inputs(self) -> Option[WiredVariableSet]:
 		return self.__bound_inputs
 
 	@property
-	def bound_intermediate_outputs(self) -> tuple[WiredStageIO]:
+	def bound_intermediate_outputs(self) -> tuple[WiredVariableSet]:
 		return self.__bound_intermediate_outputs
 
 	def bind_inputs(self, inputs: tuple[Variable]) -> "Result[Wiring]":
 		return self.__class__(
 			self.__inputs,
 			self.__outputs,
-			self.__stages,
+			self.__stage_inputs,
+			self.__stage_outputs,
 			self.__wires,
 			self.__status,
-			Some(WiredStageIO.from_global_io(inputs)),
+			Some(WiredVariableSet.from_variable_set(inputs)),
 			self.__bound_intermediate_outputs,
 		)
 
@@ -385,41 +264,46 @@ class Wiring:
 		return self.__class__(
 			self.__inputs,
 			self.__outputs,
-			self.__stages,
+			self.__stage_inputs,
+			self.__stage_outputs,
 			self.__wires,
 			self.__status,
 			self.__bound_inputs,
 			self.__bound_intermediate_outputs
-			+ (self.__stages[stage_index].bind(stage_outputs),),
+			+ (self.__stage_outputs[stage_index].bind_local(stage_outputs),),
 		)
 
-	def get_stage_inputs(self, stage_index: int) -> "Result[VariableSet]":
+	def get_stage_inputs(
+		self, stage_index: int
+	) -> "Result[Exception, Exception, VariableSet]":
 		try:
-			return (
-				merge_all(
-					*[
-						self._resolve(wire)
-						for wire in self.wires["stages"][str(stage_index)]
-					],
-					fn=MergeStrategies.APPEND,
+			return merge_all(
+				*[
+					self._resolve(wire)
+					for wire in self.wires["stages"][str(stage_index)]
+				],
+				fn=MergeStrategies.APPEND,
+				empty=[],
+			).flat_map(
+				lambda resolved_vars: _validate_and_bind_results(
+					self.__stage_inputs[stage_index], resolved_vars
 				)
-				.map(lambda wsvars: [v.local_var for v in wsvars] if wsvars else [])
-				.map(lambda vars: VariableSet(tuple(vars)))
 			)
 		except KeyError:
 			return Fail([KeyError(f"Wiring has no stage {stage_index}.")])
 		# except Exception as e:
-		# return Fail([e])
+		# 	return Fail([e])
 
 	def get_outputs(self) -> "Result[VariableSet]":
 		try:
-			return (
-				merge_all(
-					*[self._resolve(wire) for wire in self.wires["outputs"]],
-					fn=MergeStrategies.APPEND,
+			return merge_all(
+				*[self._resolve(wire) for wire in self.wires["outputs"]],
+				fn=MergeStrategies.APPEND,
+				empty=[],
+			).flat_map(
+				lambda resolved_vars: _validate_and_bind_results(
+					self.__outputs, resolved_vars
 				)
-				.map(lambda wsvars: [v.local_var for v in wsvars])
-				.map(lambda vars: VariableSet(tuple(vars)))
 			)
 		except Exception as e:
 			return Fail([e])
@@ -486,10 +370,10 @@ class Wiring:
 		Generate a wiring for a workflow
 		"""
 
-		stage_inputs = tuple([WiredStageIO.from_input(s) for s in stages])
-		stage_outputs = tuple([WiredStageIO.from_output(s) for s in stages])
-		global_inputs = WiredStageIO.from_global_io(inputs)
-		global_outputs = WiredStageIO.from_global_io(outputs)
+		stage_inputs = tuple([WiredVariableSet.from_input(s) for s in stages])
+		stage_outputs = tuple([WiredVariableSet.from_output(s) for s in stages])
+		global_inputs = WiredVariableSet.from_variable_set(inputs)
+		global_outputs = WiredVariableSet.from_variable_set(outputs)
 
 		def _make_wire_binding(dex: int, v: WiredStageVariable) -> WireBinding:
 			if v.is_bound:
@@ -520,4 +404,6 @@ class Wiring:
 			Wire(o, _make_wire_binding(len(stages), o)) for o in global_outputs.vars
 		]
 
-		return cls(global_inputs, global_outputs, stage_outputs, wires, status)
+		return cls(
+			global_inputs, global_outputs, stage_inputs, stage_outputs, wires, status
+		)

@@ -131,7 +131,7 @@ def _bind_outputs_from_rval(
 		final_result = (
 			collected_results[0].map(lambda a: [a])
 			if len(collected_results) == 1
-			else merge_all(*collected_results, fn=MergeStrategies.APPEND)
+			else merge_all(*collected_results, fn=MergeStrategies.APPEND, empty=[])
 		)
 
 		if len(vs) != len(os):

@@ -130,6 +130,9 @@ class Nothing(Option):
 	def __str__(self):
 		return "Nothing"
 
+	def __repr__(self):
+		return "Nothing()"
+
 
 class Some[A](Option):
 	"""Represents an ``Option`` that contains a concrete value."""
@@ -155,6 +158,9 @@ class Some[A](Option):
 
 	def __str__(self):
 		return f"Some[{self.val.__class__.__name__}]({self.val})"
+
+	def __repr__(self):
+		return f"Some({repr(self.val)})"
 
 
 def _make_from(obj: any) -> Option[A]:
