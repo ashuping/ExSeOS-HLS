@@ -51,7 +51,7 @@ class StackTraced[A]:
 		self.__stack_trace = (
 			stack_trace
 			if stack_trace is not None
-			else tuple(traceback.extract_stack()[-1 * exclude_frames])
+			else tuple(traceback.extract_stack()[: -1 * exclude_frames])
 		)
 
 	@property
@@ -87,4 +87,10 @@ class StackTraced[A]:
 			val
 			if issubclass(type(val), StackTraced)
 			else StackTraced(val, exclude_frames=exclude_frames)
+		)
+
+	def __str__(self) -> str:
+		return (
+			"\n".join(traceback.format_list(list(self.stack_trace)))
+			+ f"\n[{type(self.val).__name__}]: {self.val}"
 		)

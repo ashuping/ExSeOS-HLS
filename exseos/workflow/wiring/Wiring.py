@@ -365,7 +365,7 @@ class Wiring:
 	@classmethod
 	def wire(
 		cls, inputs: tuple[Variable], outputs: tuple[Variable], stages: tuple[Stage]
-	):
+	) -> "Wiring":
 		"""
 		Generate a wiring for a workflow
 		"""

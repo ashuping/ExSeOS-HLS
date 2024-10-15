@@ -20,8 +20,12 @@ A sequence of operations.
 
 import random
 
-from exseos.types.Variable import Variable, UnboundVariable
+from exseos.types.Variable import Variable, UnboundVariable, ensure_from_name_arr
 from exseos.types.Option import Some
+from exseos.types.Result import Result, Okay
+from exseos.ui.UIManager import UIManager
+from exseos.workflow.stage.Stage import Stage
+from exseos.workflow.wiring.Wiring import Wiring
 
 
 class Workflow:
@@ -31,8 +35,19 @@ class Workflow:
 	Instead of instantiating this directly, use ``MakeWorkflow``.
 	"""
 
-	def __init__(self, stages, inputs=[], outputs=[]):
-		pass
+	def __init__(
+		self,
+		stages: tuple[Stage],
+		inputs: tuple[Variable],
+		outputs: tuple[Variable],
+		wiring: Wiring,
+		ui: UIManager,
+	):
+		self.__stages = stages
+		self.__inputs = inputs
+		self.__outputs = outputs
+		self.__wiring = wiring
+		self.__ui = ui
 
 
 class MakeWorkflow:
@@ -96,12 +111,23 @@ class MakeWorkflow:
 		"""Add stages to the ``Workflow``."""
 		self.stages = args
 
-	def __call__(self, *args, **kwargs):
+	@property
+	def status(self) -> Result[Exception, Exception, None]:
+		"""
+		Validate the ``Workflow`` under construction and return any errors or
+		warnings.
+		"""
+		return Okay(None)
+
+	def __call__(self, *args) -> Workflow:
 		"""
 		Instantiate the ``Workflow`` and bind the provided arguments to its
 		inputs.
-
-		TODO: We should validate the ``Stage``'s, to make sure that their inputs
-		and outputs are well-formed and avoid issues down the line.
 		"""
-		raise NotImplementedError
+		res = self.status
+
+		args_variablized = ensure_from_name_arr(args)
+
+		wiring = Wiring.wire(args_variablized, self.outputs, self.stages)
+
+		res <<= wiring.status
