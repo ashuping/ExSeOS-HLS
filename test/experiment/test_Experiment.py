@@ -19,7 +19,7 @@ from exseos.experiment.optimizer.GridOptimizer import GridOptimizer
 from exseos.experiment.optimizer.OptimizerParameter import ContinuousOptimizerParameter
 from exseos.experiment.optimizer.OptimizerTarget import TargetMaximize
 from exseos.types.Result import Fail, Result, Okay
-from exseos.types.Variable import UnboundVariable, VariableSet
+from exseos.types.Variable import UnboundVariable, VariableSet, Variable
 from exseos.workflow.stage.Stage import Stage
 from exseos.workflow.Workflow import MakeWorkflow
 
@@ -34,7 +34,9 @@ class MustBe2X(Stage):
 
 	output_vars = ()
 
-	async def run(self, inputs: VariableSet, _) -> Result:
+	async def run(
+		self, inputs: VariableSet, _
+	) -> Result[Exception, Exception, tuple[Variable]]:
 		res = inputs.check_all()
 		if res.is_fail:
 			return res
@@ -42,13 +44,17 @@ class MustBe2X(Stage):
 		if abs(2 * inputs.x - inputs.must_be_2x) > 0.00001:
 			return Fail([ValueError("it wasn't 2x!!!")])
 
+		return Okay(())
+
 
 class MysteryEquation(Stage):
 	input_vars = (UnboundVariable("x", float, "input to the calculation"),)
 
-	output_vars = UnboundVariable("y", float, "result of the calculation")
+	output_vars = (UnboundVariable("y", float, "result of the calculation"),)
 
-	async def run(self, inputs: VariableSet, _) -> Result:
+	async def run(
+		self, inputs: VariableSet, _
+	) -> Result[Exception, Exception, tuple[Variable]]:
 		res = inputs.check_all()
 		if res.is_fail:
 			return res
@@ -60,7 +66,6 @@ class MysteryEquation(Stage):
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-@pytest.mark.xfail
 async def test_experiment_integration():
 	workflow = (
 		MakeWorkflow("The Mystery Equation")

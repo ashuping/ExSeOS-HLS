@@ -19,16 +19,16 @@ Classes and functions for automatically re-running and optimizing ``Workflow``
 objects.
 """
 
-import functools
 from typing import Any, Callable
 from exseos.experiment.Constant import (
 	BasicExperimentConstant,
 	ExperimentConstant,
 	LambdaExperimentConstant,
+	ConstantResolutionError,
 )
 from exseos.experiment.optimizer.Optimizer import Optimizer, OptimizerIteration
 from exseos.types.Option import Nothing, Option, Some
-from exseos.types.Result import Okay, Result
+from exseos.types.Result import Result, Okay, Fail
 from exseos.types.Variable import (
 	BoundVariable,
 	Variable,
@@ -69,7 +69,11 @@ class Experiment:
 
 	@property
 	def constants(self) -> tuple[ExperimentConstant]:
-		return self.constants
+		return self.__constants
+
+	@property
+	def ui(self) -> UIManager:
+		return self.__ui
 
 	def copy(self, **delta) -> "Experiment":
 		params = {
@@ -83,12 +87,13 @@ class Experiment:
 
 	def _resolve_constants(
 		self, opt_inputs: tuple[Variable]
-	) -> Option[tuple[Variable]]:
+	) -> Result[Exception, Exception, tuple[Variable]]:
 		unresolved_constants = self.constants
 
 		vars = opt_inputs
 
 		while unresolved_constants:
+			print(vars)
 			newly_resolved = tuple(
 				[
 					BoundVariable(c.name, c.resolve(VariableSet(vars)))
@@ -102,30 +107,49 @@ class Experiment:
 			)
 
 			if len(newly_resolved) == 0:
-				return Nothing()  # Can't resolve all constants.
+				return Fail(
+					[ConstantResolutionError(unresolved_constants, vars)]
+				)  # Can't resolve all constants.
 
 			vars += newly_resolved
 
-		return Some(vars)
+		return Okay(vars)
 
 	async def run(self) -> "Result[Exception, Exception, ExperimentResult]":
-		# iteration: int = 0
-		# history: tuple[OptimizerIteration] = {}
-		# while True:
-		# 	next_iteration_inputs = self.optimizer.next(iteration, 1, history)
+		iteration: int = 0
+		history: tuple[OptimizerIteration] = ()
+		status = Okay(None)
 
-		# 	if len(next_iteration_inputs) == 0:
-		# 		break
+		while True:
+			next_iteration_inputs = self.optimizer.next(iteration, 1, history)
 
-		# 	run_inputs = self._resolve_constants(next_iteration_inputs)
+			if len(next_iteration_inputs) == 0:
+				break
 
-		# 	if not run_inputs.has_val:
+			run_inputs = self._resolve_constants(
+				tuple(next_iteration_inputs[0].vars.values())
+			)
 
-		# 	run_res = await self.workflow.run(
+			status <<= run_inputs
+			if status.is_fail:
+				return status
 
-		# 	)
+			run_res = await self.workflow.run(run_inputs.val, self.ui)
 
-		return Okay(None)
+			status <<= run_res
+			if status.is_fail:
+				return status
+
+			history += (
+				OptimizerIteration(
+					VariableSet(run_inputs.val),
+					run_res.val,
+				),
+			)
+
+			iteration += 1
+
+		return status >> Okay(ExperimentResult(self.optimizer, history))
 
 
 class ExperimentResult:
@@ -174,7 +198,7 @@ class MakeExperiment:
 
 	@property
 	def constants(self) -> tuple[ExperimentConstant]:
-		return self.constants
+		return self.__constants
 
 	@property
 	def ui(self) -> UIManager:
@@ -228,9 +252,7 @@ class MakeExperiment:
 				[
 					LambdaExperimentConstant(
 						key,
-						functools.partial(
-							_inner, fn=val[0], dependencies=ensure_from_name_arr(val[1])
-						),
+						lambda vs: _inner(val[0], ensure_from_name_arr(val[1]), vs),
 					)
 					for key, val in calcs.items()
 				]

@@ -169,8 +169,11 @@ class Workflow:
 		return self.__ui
 
 	async def run(
-		self, inputs: tuple[Variable]
+		self, inputs: tuple[Variable], ui: UIManager = None
 	) -> Result[Exception, Exception, VariableSet]:
+		if not ui:
+			ui = self.ui
+
 		if not self.is_runnable:
 			return MalformedWorkflowError(self, self.status)
 
@@ -187,21 +190,21 @@ class Workflow:
 
 			if run_result.is_fail:
 				log.error("Encountered an error while retrieving stage inputs!")
-				await self.ui.display(ResultMessage(run_result))
+				await ui.display(ResultMessage(run_result))
 				return run_result
 
 			try:
-				stage_res = await stage.run(stage_input_res.val, self.ui)
+				stage_res = await stage.run(stage_input_res.val, ui)
 			except Exception as e:
 				log.error(f"User code threw an exception: {type(e).__name__}!")
-				await self.ui.display(ResultMessage(run_result))
+				await ui.display(ResultMessage(run_result))
 				return run_result << Fail([e])
 
 			run_result <<= stage_res
 
 			if run_result.is_fail:
 				log.error("User code returned a failure result!")
-				await self.ui.display(ResultMessage(run_result))
+				await ui.display(ResultMessage(run_result))
 				return run_result
 
 			run_result <<= stage_res
@@ -213,7 +216,7 @@ class Workflow:
 
 		if run_result.is_fail:
 			log.error("Encountered an error while retrieving final outputs!")
-			await self.ui.display(ResultMessage(run_result))
+			await ui.display(ResultMessage(run_result))
 
 		return run_result.map(lambda _: final_outputs.val)
 
