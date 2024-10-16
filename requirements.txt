@@ -10,3 +10,4 @@ psutil
 tables
 pydot
 pyyaml
+dill
