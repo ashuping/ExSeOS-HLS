@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from exseos.types import TypeCheckWarning
+from exseos.types.util import TypeCheckWarning
 from exseos.types.Option import Some
 from exseos.types.Result import Okay, Warn
 from exseos.types.Variable import BoundVariable, UnboundVariable, VariableSet
@@ -25,15 +25,18 @@ from exseos.workflow.stage.StageFromFunction import (
 	ReturnBindingMismatchWarning,
 )
 
+import pytest
 
-def test_basic_function():
+
+@pytest.mark.asyncio
+async def test_basic_function():
 	def fn(x: int) -> int:
 		print("[test] calling inner function")
 		return 2 * x
 
 	stage = make_StageFromFunction(fn, ("2x",))(UnboundVariable("x"))
 
-	res = stage.run(VariableSet((BoundVariable("x", 2),)))
+	res = await stage.run(VariableSet((BoundVariable("x", 2),)))
 
 	expect = Okay((BoundVariable("2x", 4),))
 
@@ -43,14 +46,15 @@ def test_basic_function():
 	assert res == expect
 
 
-def test_multi_return():
+@pytest.mark.asyncio
+async def test_multi_return():
 	def fn(x: int) -> tuple[int, str]:
 		print("[test] calling inner function")
 		return 2 * x, str(2 * x)
 
 	stage = make_StageFromFunction(fn, ("2x", "str2x"))(UnboundVariable("x"))
 
-	res = stage.run(VariableSet((BoundVariable("x", 2),)))
+	res = await stage.run(VariableSet((BoundVariable("x", 2),)))
 
 	expect = Okay((BoundVariable("2x", 4), BoundVariable("str2x", "4")))
 
@@ -60,7 +64,8 @@ def test_multi_return():
 	assert res == expect
 
 
-def test_type_mismatch():
+@pytest.mark.asyncio
+async def test_type_mismatch():
 	def fn(x: int) -> int:
 		print("[test] calling inner function")
 		return 2 * x
@@ -69,7 +74,7 @@ def test_type_mismatch():
 		UnboundVariable("x")
 	)
 
-	res = stage.run(VariableSet((BoundVariable("x", 2),)))
+	res = await stage.run(VariableSet((BoundVariable("x", 2),)))
 
 	expect = Warn(
 		[
@@ -88,7 +93,8 @@ def test_type_mismatch():
 	assert res == expect
 
 
-def test_too_many_returns():
+@pytest.mark.asyncio
+async def test_too_many_returns():
 	def fn(x: int) -> int:
 		print("[test] calling inner function")
 		return 3 * x, 2 * x, x
@@ -101,7 +107,7 @@ def test_too_many_returns():
 		),
 	)(UnboundVariable("x"))
 
-	res = stage.run(VariableSet((BoundVariable("x", 2),)))
+	res = await stage.run(VariableSet((BoundVariable("x", 2),)))
 
 	expect = Warn(
 		[ReturnBindingMismatchWarning(stage, 3, 2)],
@@ -117,7 +123,8 @@ def test_too_many_returns():
 	assert res == expect
 
 
-def test_too_few_returns():
+@pytest.mark.asyncio
+async def test_too_few_returns():
 	def fn(x: int) -> int:
 		print("[test] calling inner function")
 		return 3 * x
@@ -130,7 +137,7 @@ def test_too_few_returns():
 		),
 	)(UnboundVariable("x"))
 
-	res = stage.run(VariableSet((BoundVariable("x", 2),)))
+	res = await stage.run(VariableSet((BoundVariable("x", 2),)))
 
 	expect = Warn(
 		[ReturnBindingMismatchWarning(stage, 1, 2)],
@@ -165,7 +172,8 @@ def test_io_types():
 	assert stage_cls.output_vars == (UnboundVariable("return", Some(bool)),)
 
 
-def test_side_effecting_function():
+@pytest.mark.asyncio
+async def test_side_effecting_function():
 	global fn_run_count
 	fn_run_count = 0
 
@@ -178,5 +186,5 @@ def test_side_effecting_function():
 	assert stage_cls.input_vars == ()
 	assert stage_cls.output_vars == ()
 
-	assert stage_cls().run(VariableSet(())) == Okay(())
+	assert (await stage_cls().run(VariableSet(()))) == Okay(())
 	assert fn_run_count == 1

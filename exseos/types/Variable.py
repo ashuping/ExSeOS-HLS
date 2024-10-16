@@ -20,7 +20,7 @@ used to store inputs, outputs, and intermediate values flowing between
 ``WorkflowStage``'s.
 """
 
-from exseos.types import common, type_check
+from exseos.types.util import common, type_check
 from exseos.types.Option import Option, Nothing, Some
 from exseos.types.Result import Result, Okay, Warn, Fail, merge_all
 
@@ -28,7 +28,7 @@ from abc import ABC, abstractmethod
 import logging
 from typing import TypeVar
 
-A = TypeVar("A")
+A: TypeVar = TypeVar("A")
 
 log = logging.getLogger(__name__)
 
@@ -95,6 +95,11 @@ class Variable[A](ABC):
 		"""Bind a value to this Variable."""
 		...  # pragma: no cover
 
+	@abstractmethod
+	def copy(self, **changes) -> "Variable[A]":
+		"""Make a copy of this Variable with changes."""
+		...  # pragma: no cover
+
 	def __eq__(self, other: "Variable") -> bool:
 		if not issubclass(type(other), Variable):
 			return False
@@ -136,26 +141,26 @@ class BoundVariable[A](Variable):
 				# Infer type from `val`
 				self.__type = Some(type(val))
 				self.__inferred = True
-				log.warning(
+				log.debug(
 					f"Inferred type {self.__type} from val {val} for BoundVariable {name}."
 				)
 			else:
 				# Try to find a common type between `val` and `default`
 				ctype = common(val, default.val)
 				if ctype.is_okay:
-					log.warning(
+					log.debug(
 						f"Inferred type {ctype.val} from val {val} and default {default.val} for BoundVariable {name}"
 					)
 					self.__type = Some(ctype.val)
 					self.__inferred = True
 				elif ctype.is_warn:
-					log.warning(
+					log.debug(
 						f"Tried to infer type for BoundVariable {name} from val {val} and default {default.val}, but resultant type {ctype.val} seems overly broad. Using it anyway."
 					)
 					self.__type = Some(ctype.val)
 					self.__inferred = True
 				else:
-					log.warning(
+					log.debug(
 						f"Failed to infer type for BoundVariable {name} - val ({val}) and default ({default.val}) have no types in common!"
 					)
 					self.__type = Nothing()
@@ -195,6 +200,17 @@ class BoundVariable[A](Variable):
 
 	def bind(self, val: A) -> "BoundVariable[A]":
 		return BoundVariable(self.name, val, self.var_type, self.desc, self.default)
+
+	def copy(self, **changes) -> "BoundVariable[A]":
+		params = {
+			"name": self.name,
+			"val": self.val.val,
+			"var_type": Nothing() if self.var_type_inferred else self.var_type,
+			"desc": self.desc,
+			"default": self.default,
+		} | changes
+
+		return BoundVariable(**params)
 
 	def __str__(self) -> str:
 		return "".join(
@@ -241,7 +257,7 @@ class UnboundVariable[A](Variable):
 
 		if var_type == Nothing():
 			if default != Nothing():
-				log.warning(
+				log.debug(
 					f"Inferred type {type(default.val)} from default {default.val} for UnboundVariable {name}"
 				)
 				self.__type = Some(type(default.val))
@@ -283,6 +299,16 @@ class UnboundVariable[A](Variable):
 
 	def bind(self, val: A) -> BoundVariable[A]:
 		return BoundVariable(self.name, val, self.var_type, self.desc, self.default)
+
+	def copy(self, **changes) -> "UnboundVariable[A]":
+		params = {
+			"name": self.name,
+			"var_type": Nothing() if self.var_type_inferred else self.var_type,
+			"desc": self.desc,
+			"default": self.default,
+		} | changes
+
+		return UnboundVariable(**params)
 
 	def __str__(self) -> str:
 		return "".join(
@@ -353,6 +379,73 @@ class AmbiguousVariableError(Exception):
 
 		self.name = name
 		self.candidates = candidates
+		self.note = note
+
+
+class InferredTypeMismatchWarning(Warning):
+	"""
+	Raised when two ``Variable`` objects that should have the same type have
+	incompatible types, and one or both of the ``Variable`` objects' types are
+	*inferred*.
+	"""
+
+	def __init__(self, v1: Variable, v2: Variable, note: str = ""):
+		v1_exp_inf = "explicit" if v1.var_type_inferred else "implicit"
+		v1_type = (
+			f"{v1_exp_inf} type {v1.var_type.val}" if v1.var_type.has_val else "no type"
+		)
+
+		v2_exp_inf = "explicit" if v2.var_type_inferred else "implicit"
+		v2_type = (
+			f"{v2_exp_inf} type {v2.var_type.val}" if v2.var_type.has_val else "no type"
+		)
+
+		msg = (
+			f"{type(v1).__name__} {v1.name} has {v1_type}, "
+			+ f"but {type(v2).__name} {v2.name} has {v2_type}!"
+			+ f" {note}"
+			if note
+			else ""
+		)
+
+		super().__init__(msg)
+
+		self.v1 = v1
+		self.v2 = v2
+		self.note = note
+
+
+class ExplicitTypeMismatchError(Exception):
+	"""
+	Raised when two ``Variable`` objects that should have the same type have
+	incompatible types, both of the ``Variable`` objects' types are *explicit*.
+	This is more severe, as implicit mismatches may just be a result of
+	incorrect type inference.
+	"""
+
+	def __init__(self, v1: Variable, v2: Variable, note: str = ""):
+		v1_exp_inf = "explicit" if v1.var_type_inferred else "implicit"
+		v1_type = (
+			f"{v1_exp_inf} type {v1.var_type.val}" if v1.var_type.has_val else "no type"
+		)
+
+		v2_exp_inf = "explicit" if v2.var_type_inferred else "implicit"
+		v2_type = (
+			f"{v2_exp_inf} type {v2.var_type.val}" if v2.var_type.has_val else "no type"
+		)
+
+		msg = (
+			f"{type(v1).__name__} {v1.name} has {v1_type}, "
+			+ f"but {type(v2).__name} {v2.name} has {v2_type}!"
+			+ f" {note}"
+			if note
+			else ""
+		)
+
+		super().__init__(msg)
+
+		self.v1 = v1
+		self.v2 = v2
 		self.note = note
 
 
@@ -495,6 +588,7 @@ class VariableSet:
 		:param name: The ``Variable`` name to retrieve
 		:returns: The contents of the ``Variable``
 		:raises: ``UnboundVariableError`` if the ``Variable`` has no contents.
+		:raises: ``AttributeError`` if there is no such ``Variable``.
 		"""
 		if name in self.__vars.keys():
 			if self.__vars[name].val == Nothing():
@@ -566,6 +660,48 @@ def ensure_from_name_arr(xs: list[Variable | str]) -> list[Variable]:
 	:returns: Array of ``Variables``.
 	"""
 	return [ensure_from_name(x) for x in xs]
+
+
+def assert_types_match(
+	v1: Variable, v2: Variable, fail_on_explicit_mismatch: bool = True
+) -> Result[Exception, Exception, None]:
+	"""
+	Check whether ``v1`` and ``v2`` have compatible types.
+
+	If ``v1`` and ``v2`` have compatible types (or either one has no type at
+	all), then return Okay(None).
+
+	If ``v1`` and ``v2`` have incompatible types, but one or both of their types
+	was inferred, then return ``Warn([InferredTypeMismatchWarning], None)``.
+
+	If ``v1`` and ``v2`` have incompatible types *and* both types are explicit,
+	then return ``Fail([ExplicitTypeMismatchError], [])`` (unless
+	``fail_on_explicit_mismatch`` is ``False``, in which case it will be
+	``Warn([ExplicitTypeMismatchError], None)``).
+
+	Note that compatibility is one-way. If ``v2``'s type is a subclass of
+	``v1``'s type, then they are considered compatible; however, this does not
+	hold the other way around.
+
+	:param v1: The variable to check against.
+	:param v2: The variable that should be compatible with ``v1``.
+	:param fail_on_explicit_mismatch: Whether incompatible explicitly-declared
+	    types should result in ``Fail()`` or ``Warn()``.
+	:return: A ``Result`` containing any compatibility issues.
+	"""
+
+	if v1.var_type == Nothing() or v2.var_type == Nothing():
+		return Okay(None)
+
+	if issubclass(v2.var_type.val, v1.var_type.val):
+		return Okay(None)
+
+	if v1.var_type_inferred or v2.var_type_inferred:
+		return Warn([InferredTypeMismatchWarning(v1, v2)], None)
+	elif fail_on_explicit_mismatch:
+		return Fail([ExplicitTypeMismatchError(v1, v2)])
+	else:
+		return Warn([ExplicitTypeMismatchError(v1, v2)], None)
 
 
 def constant(val: any) -> BoundVariable:

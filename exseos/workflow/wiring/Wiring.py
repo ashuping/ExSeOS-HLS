@@ -21,7 +21,7 @@ A ``Wiring`` object contains a lookup table that matches intermediate
 
 from exseos.types.Option import Option, Some, Nothing
 from exseos.types.Result import Result, Okay, Warn, Fail, merge_all, MergeStrategies
-from exseos.types.Variable import Variable, VariableSet
+from exseos.types.Variable import Variable, VariableSet, assert_types_match
 from exseos.workflow.stage.Stage import Stage
 from exseos.workflow.wiring.WiredStageVariable import WiredStageVariable
 from exseos.workflow.wiring.WiredVariableSet import WiredVariableSet
@@ -167,15 +167,17 @@ def _find_binding_path(
 	stages: tuple[WiredVariableSet],
 	inputs: WiredVariableSet,
 	to_find_wire_name: str,
-) -> Option[str]:
+) -> Option[tuple[str, WiredStageVariable]]:
 	for dex, stage in enumerate(reversed(stages)):
 		found = stage.get_by_wire(to_find_wire_name)
 		if found.has_val:
-			return Some(f"/stages/{len(stages) - (1 + dex)}/{to_find_wire_name}")
+			return Some(
+				(f"/stages/{len(stages) - (1 + dex)}/{to_find_wire_name}", found.val)
+			)
 
 	found = inputs.get_by_wire(to_find_wire_name)
 	if found.has_val:
-		return Some(f"/inputs/{to_find_wire_name}")
+		return Some((f"/inputs/{to_find_wire_name}", found.val))
 
 	return Nothing()
 
@@ -246,7 +248,7 @@ class Wiring:
 	def bound_intermediate_outputs(self) -> tuple[WiredVariableSet]:
 		return self.__bound_intermediate_outputs
 
-	def bind_inputs(self, inputs: tuple[Variable]) -> "Result[Wiring]":
+	def bind_inputs(self, inputs: tuple[Variable]) -> "Wiring":
 		return self.__class__(
 			self.__inputs,
 			self.__outputs,
@@ -258,9 +260,7 @@ class Wiring:
 			self.__bound_intermediate_outputs,
 		)
 
-	def bind_stage(
-		self, stage_index: int, stage_outputs: tuple[Variable]
-	) -> "Result[Wiring]":
+	def bind_stage(self, stage_index: int, stage_outputs: tuple[Variable]) -> "Wiring":
 		return self.__class__(
 			self.__inputs,
 			self.__outputs,
@@ -294,7 +294,7 @@ class Wiring:
 		# except Exception as e:
 		# 	return Fail([e])
 
-	def get_outputs(self) -> "Result[VariableSet]":
+	def get_outputs(self) -> "Result[Exception, Exception, VariableSet]":
 		try:
 			return merge_all(
 				*[self._resolve(wire) for wire in self.wires["outputs"]],
@@ -375,9 +375,24 @@ class Wiring:
 		global_inputs = WiredVariableSet.from_variable_set(inputs)
 		global_outputs = WiredVariableSet.from_variable_set(outputs)
 
-		def _make_wire_binding(dex: int, v: WiredStageVariable) -> WireBinding:
+		def _type_check_lookup_result(
+			check_against: WiredStageVariable, found: WiredStageVariable
+		) -> Result[Exception, Exception, WiredStageVariable]:
+			return check_against.assert_has_wire.flat_map(
+				lambda _: found.assert_has_wire
+			).flat_map(
+				lambda _: assert_types_match(
+					check_against.wire_var.val,
+					found.wire_var.val,
+					fail_on_explicit_mismatch=False,
+				)
+			)
+
+		def _make_wire_binding(
+			dex: int, v: WiredStageVariable
+		) -> Result[Exception, Exception, WireBinding]:
 			if v.is_bound:
-				return SelfBinding()
+				return Okay(SelfBinding())
 			elif v.has_wire and (
 				(
 					res_path := _find_binding_path(
@@ -385,24 +400,50 @@ class Wiring:
 					)
 				).has_val
 			):
-				return LinkBinding(res_path.val)
+				return _type_check_lookup_result(v, res_path.val[1]).map(
+					lambda _: LinkBinding(res_path.val[0])
+				)
 			elif v.has_default:
-				return DefaultBinding()
+				return Okay(DefaultBinding())
 			else:
-				return NoBinding()
+				return Okay(NoBinding())
 
 		wires = {"stages": {}, "outputs": {}}
-
 		status = Okay(None)
 
 		for dex, s_input in enumerate(stage_inputs):
-			wires["stages"][str(dex)] = [
-				Wire(v, _make_wire_binding(dex, v)) for v in s_input.vars
-			]
+			bind_result = merge_all(
+				*[
+					_make_wire_binding(dex, v)
+					.map(lambda b: Wire(v, b))
+					.recover(lambda e, w: Warn(e + w, Wire(v, NoBinding())))
+					for v in s_input.vars
+				],
+				fn=MergeStrategies.APPEND,
+				empty=[],
+			)
 
-		wires["outputs"] = [
-			Wire(o, _make_wire_binding(len(stages), o)) for o in global_outputs.vars
-		]
+			status <<= bind_result
+
+			wires["stages"][str(dex)] = bind_result.val
+
+		output_bind_result = merge_all(
+			*[
+				_make_wire_binding(len(stages), o)
+				.map(lambda b: Wire(o, b))
+				.recover(lambda e, w: Warn(e + w, Wire(o, NoBinding())))
+				for o in global_outputs.vars
+			],
+			fn=MergeStrategies.APPEND,
+			empty=[],
+		)
+
+		print(output_bind_result)
+		status <<= output_bind_result
+
+		print(output_bind_result)
+
+		wires["outputs"] = output_bind_result.val
 
 		return cls(
 			global_inputs, global_outputs, stage_inputs, stage_outputs, wires, status

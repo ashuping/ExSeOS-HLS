@@ -28,14 +28,16 @@ from exseos.types.Variable import (
 	ensure_from_name_arr,
 	VariableSet,
 )
-from exseos.types import type_check, TypeCheckWarning
+from exseos.types.util import type_check, TypeCheckWarning
 from exseos.types.Option import Some, Nothing
 from exseos.types.Result import Result, Okay, Warn, Fail, merge_all, MergeStrategies
 from exseos.workflow.stage.Stage import Stage
+from exseos.ui.NullUIManager import NullUIManager
+from exseos.ui.UIManager import UIManager
 
 from abc import abstractmethod
 import inspect
-from inspect import Parameter, Signature
+from inspect import Parameter, Signature, isawaitable
 from typing import Callable
 
 
@@ -168,13 +170,15 @@ class StageFromFunction(Stage):
 		"""The actual function encapsulated in a ``StageFromFunction``."""
 		...  # pragma: no cover
 
-	def run(self, inputs: VariableSet) -> Result:
+	async def run(self, inputs: VariableSet, ui: UIManager = NullUIManager()) -> Result:
 		res = inputs.check_all()
 		if res.is_fail:
 			return res
 
 		try:
 			rval = self.inner_function(**_input_list_to_kwargs(inputs))
+			if isawaitable(rval):
+				await rval
 		except Exception as e:
 			return Fail(
 				[

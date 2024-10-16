@@ -21,7 +21,8 @@ given ``Variable``, and allows for easy mapping between them.
 """
 
 from exseos.types.Option import Option, Some, Nothing
-from exseos.types.Variable import Variable
+from exseos.types.Result import Result, Okay, Fail
+from exseos.types.Variable import Variable, assert_types_match as var_assert_types_match
 
 
 class WiredStageVariable:
@@ -32,12 +33,23 @@ class WiredStageVariable:
 
 	Note that, while every ``Variable`` *will* have a local name, not every
 	variable will have a wire name.
+
+	If the wire-var has an inferred type and the local-var has an explicit type,
+	the wire-var will have its type set to the local-var's
 	"""
 
 	__match_args__ = ("wire_name", "local_name", "wire_var", "local_var")
 
 	def __init__(self, wire_var: Option[Variable], local_var: Variable):
-		self.__wire_var = wire_var
+		self.__wire_var = wire_var.map(
+			lambda v: (
+				v.copy(var_type=local_var.var_type)
+				if (v.var_type_inferred or v.var_type == Nothing())
+				and not (local_var.var_type_inferred or local_var.var_type == Nothing())
+				else v
+			)
+		)
+
 		self.__local_var = local_var
 
 	def bind(self, val: any) -> "WiredStageVariable":
@@ -55,6 +67,16 @@ class WiredStageVariable:
 	@property
 	def has_wire(self) -> bool:
 		return self.__wire_var.has_val
+
+	@property
+	def assert_has_wire(self) -> Result[Exception, Exception, None]:
+		return (
+			Okay(None)
+			if self.has_wire
+			else Fail(
+				[ValueError(f"WiredStageVariable {self} does not have a wire-name!")]
+			)
+		)
 
 	@property
 	def wire_name(self) -> Option[str]:
@@ -108,6 +130,15 @@ class WiredStageVariable:
 			return Some(self.local_var.default.val)
 
 		return Nothing()
+
+	def assert_types_match(self) -> Result[Exception, Exception, None]:
+		"""
+		Return any type mismatch issues between the local and wire variables.
+		"""
+		if not self.has_wire:
+			return Okay(None)
+
+		return var_assert_types_match(self.local_var, self.wire_var.val)
 
 	def __eq__(self, other: "WiredStageVariable") -> bool:
 		if not issubclass(type(other), WiredStageVariable):

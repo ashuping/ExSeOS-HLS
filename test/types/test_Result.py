@@ -251,15 +251,15 @@ def test_append_merge():
 def test_merge_all():
 	rs = [Okay(1), Okay(2), Warn([ArithmeticError(6)], 3), Okay(4)]
 
-	assert merge_all(*rs, fn=MergeStrategies.KEEP_FIRST) == Warn(
-		[ArithmeticError(6)], 1
-	)
+	assert merge_all(
+		*rs, fn=MergeStrategies.KEEP_FIRST, empty=MergeStrategies.KEEP_FIRST_EMPTY
+	) == Warn([ArithmeticError(6)], 1)
 
 	assert merge_all(*rs, fn=MergeStrategies.KEEP_LAST) == Warn([ArithmeticError(6)], 4)
 
-	assert merge_all(*rs, fn=MergeStrategies.APPEND) == Warn(
-		[ArithmeticError(6)], [1, 2, 3, 4]
-	)
+	assert merge_all(
+		*rs, fn=MergeStrategies.APPEND, empty=MergeStrategies.APPEND_EMPTY
+	) == Warn([ArithmeticError(6)], [1, 2, 3, 4])
 
 
 def test_okay_map():

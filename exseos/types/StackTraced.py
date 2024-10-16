@@ -21,10 +21,10 @@ Exceptions (like those found in ``Result`` objects.)
 """
 
 import traceback
-from traceback import FrameSummary
+from traceback import FrameSummary, format_exception
 from typing import TypeVar, Callable
 
-A = TypeVar("A")
+A: TypeVar = TypeVar("A")
 
 
 class StackTraced[A]:
@@ -90,7 +90,8 @@ class StackTraced[A]:
 		)
 
 	def __str__(self) -> str:
-		return (
-			"\n".join(traceback.format_list(list(self.stack_trace)))
-			+ f"\n[{type(self.val).__name__}]: {self.val}"
+		return "\n".join(traceback.format_list(list(self.stack_trace))) + (
+			"\n" + "".join(format_exception(self.val))
+			if issubclass(type(self.val), Exception)
+			else f"\n[{type(self.val).__name__}]: {self.val}"
 		)

@@ -210,6 +210,27 @@ def test_has_default():
 	)
 
 
+def test_wire_inheritance():
+	assert WiredStageVariable(
+		Some(UnboundVariable("wire_var")), UnboundVariable("local_var", var_type=int)
+	).wire_var == Some(UnboundVariable("wire_var", var_type=int))
+
+	assert WiredStageVariable(
+		Some(UnboundVariable("wire_var", var_type=str)),
+		UnboundVariable("local_var", var_type=int),
+	).wire_var == Some(UnboundVariable("wire_var", var_type=str))
+
+	assert WiredStageVariable(
+		Some(UnboundVariable("wire_var", default="my_str")),
+		UnboundVariable("local_var", var_type=int),
+	).wire_var == Some(UnboundVariable("wire_var", default="my_str", var_type=int))
+
+	assert WiredStageVariable(
+		Some(UnboundVariable("wire_var", default="my_str")),
+		UnboundVariable("local_var", default=5),
+	).wire_var == Some(UnboundVariable("wire_var", default="my_str"))
+
+
 random.seed(0)
 test_val_params = random.sample(
 	list(

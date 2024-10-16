@@ -166,6 +166,9 @@ def test_bind_local():
 
 	actual = WiredVariableSet(wired_variables).bind_local(local_names_to_bind)
 
+	print(f"expected: {expected}")
+	print(f"actual  : {actual}")
+
 	assert actual == expected
 
 

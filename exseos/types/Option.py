@@ -27,8 +27,8 @@ from exseos.types.ComparableError import ComparableError
 from typing import TypeVar, Callable
 from abc import ABC, abstractmethod
 
-A = TypeVar("A")
-B = TypeVar("B")
+A: TypeVar = TypeVar("A")
+B: TypeVar = TypeVar("B")
 
 
 class Option[A](ABC):

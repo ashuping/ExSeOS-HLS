@@ -1,8 +1,26 @@
+# ExSeOS-HLS Hardware ML Workflow Manager
+# Copyright (C) 2024  Alexis Maya-Isabelle Shuping
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 from exseos.types.Option import Some
 from exseos.types.Result import Result, Okay
 from exseos.types.Variable import BoundVariable, UnboundVariable, VariableSet
 from exseos.workflow.stage.Stage import Stage
 from exseos.workflow.wiring.Wiring import Wiring
+from exseos.ui.NullUIManager import NullUIManager
+from exseos.ui.UIManager import UIManager
 
 import random
 import pytest
@@ -17,7 +35,7 @@ class RaiseToPower(Stage):
 		UnboundVariable("result", int, "``x`` raised to the ``pow`` power."),
 	)
 
-	def run(self, inputs: VariableSet) -> Result:
+	async def run(self, inputs: VariableSet, ui: UIManager = NullUIManager()) -> Result:
 		res = inputs.check_all()
 		if res.is_fail:
 			return res
@@ -29,12 +47,13 @@ class MakeBase(Stage):
 	input_vars = ()
 	output_vars = (UnboundVariable("x", int, "A random number between 1 and 100"),)
 
-	def run(self, inputs: VariableSet) -> Result:
+	async def run(self, inputs: VariableSet, ui: UIManager = NullUIManager()) -> Result:
 		return Okay((self.output_vars[0].bind(random.randint(1, 100)),))
 
 
 @pytest.mark.integration
-def test_wire_integration():
+@pytest.mark.asyncio
+async def test_wire_integration():
 	sequence = (MakeBase().to("my_x"), RaiseToPower("my_x", "my_pow").to("my_res"))
 
 	input_vars = (UnboundVariable("my_pow"),)
@@ -49,7 +68,9 @@ def test_wire_integration():
 
 	# print(sequence[0].run(wiring.get_stage_inputs(0).val))
 
-	wiring = wiring.bind_stage(0, sequence[0].run(wiring.get_stage_inputs(0).val).val)
+	res = await sequence[0].run(wiring.get_stage_inputs(0).val)
+
+	wiring = wiring.bind_stage(0, res.val)
 
 	res_random_num = wiring.bound_intermediate_outputs[0].get_by_local("x")
 	assert res_random_num.has_val
@@ -76,7 +97,9 @@ def test_wire_integration():
 
 	assert wiring.get_stage_inputs(1) == expect
 
-	wiring = wiring.bind_stage(1, sequence[1].run(wiring.get_stage_inputs(1).val).val)
+	res = await sequence[1].run(wiring.get_stage_inputs(1).val)
+
+	wiring = wiring.bind_stage(1, res.val)
 
 	res_num_to_pow = wiring.bound_intermediate_outputs[1].get_by_local("result")
 	assert res_num_to_pow.has_val

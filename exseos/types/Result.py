@@ -61,10 +61,10 @@ from exseos.types.StackTraced import StackTraced
 from abc import ABC, abstractmethod
 from typing import TypeVar, Callable, List
 
-A = TypeVar("A")
-B = TypeVar("B")
-C = TypeVar("C")
-D = TypeVar("D")
+A: TypeVar = TypeVar("A")
+B: TypeVar = TypeVar("B")
+C: TypeVar = TypeVar("C")
+D: TypeVar = TypeVar("D")
 
 
 class Result[A, B, C](ABC):
@@ -170,6 +170,10 @@ class Result[A, B, C](ABC):
 		"""
 		If this ``Result`` is ``Okay`` or ``Warning``, call ``f`` on its value
 		and return an ``Okay`` or ``Warning`` of the result.
+
+		:param f: A mapping function that maps ``C``'s to another type ``D``.
+		:return: A ``Result`` of the same type as this, where the internal value
+		    (if present) has been run through ``f``.
 		"""
 		...  # pragma: no cover
 
@@ -178,8 +182,34 @@ class Result[A, B, C](ABC):
 		"""
 		If this ``Result`` is ``Okay`` or ``Warning``, call ``f`` on its value
 		and return the output, which must itself be a ``Result``.
+
+		If this ``Result`` is ``Fail``, then this function acts as a no-op.
+
+		:param f: A mapping function that maps ``C``'s to a ``Result[A, B, D]``.
+		:return: If this is ``Okay`` or ``Warn``, the return value of ``f`` with
+		    any pre-existing warnings added (which may change an ``Okay`` result
+		    to a ``Warn``). Otherwise, the current ``Result`` unchanged.
 		"""
 		...  # pragma: no cover
+
+	@abstractmethod
+	def recover(
+		self, f: "Callable[[StackTraced(A), StackTraced(B)], Result[A, B, D]]"
+	) -> "Result[A, B, D]":
+		"""
+		If this ``Result`` is ``Fail``, call ``f`` on the errors and warnings,
+		and return the output, which must itself be a ``Result``.
+
+		If this ``Result`` is *not* ``Fail``, this function acts as a no-op.
+
+		:param f: A recovery function that maps a list of errors and a list of
+		    warnings to a new ``Result``. Unlike ``flat_map()``, pre-existing
+		    warnings and errors are not automatically added to the new
+		    ``Result``.
+		:return: If this is ``Fail``, then the return value of ``f``. Otherwise,
+		    the current ``Result`` unchanged.
+		"""
+		...
 
 	def __eq__(self, other):
 		if not issubclass(type(other), Result):
@@ -281,6 +311,11 @@ class Okay[C](Result):
 	def flat_map(self, f: Callable[[C], Result[A, B, D]]) -> Result[A, B, D]:
 		return self >> f(self.__val)
 
+	def recover(
+		self, f: Callable[[StackTraced(A), StackTraced(B)], Result[A, B, D]]
+	) -> Result[A, B, D]:
+		return self
+
 	def __str__(self) -> str:
 		return f"Result.Okay[{self.val.__class__.__name__}]({self.val})"
 
@@ -338,6 +373,11 @@ class Warn[B, C](Result):
 
 	def flat_map(self, f: Callable[[C], Result[A, B, D]]) -> Result[A, B, D]:
 		return self >> f(self.__val)
+
+	def recover(
+		self, f: Callable[[StackTraced(A), StackTraced(B)], Result[A, B, D]]
+	) -> Result[A, B, D]:
+		return self
 
 	def __str__(self) -> str:
 		if len(self.warnings) > 0:
@@ -403,6 +443,11 @@ class Fail[A, B](Result):
 	def flat_map(self, f: Callable[[B, C], Result[A, B, D]]) -> Result[A, B, D]:
 		return Fail(self.__err, self.__warn)
 
+	def recover(
+		self, f: Callable[[StackTraced(A), StackTraced(B)], Result[A, B, D]]
+	) -> Result[A, B, D]:
+		return f(self._err, self.__warn)
+
 	def __str__(self) -> str:
 		if len(self.warnings) > 0:
 			warn_fmt = "with the following warnings:\n" + "".join(
@@ -440,6 +485,18 @@ class MergeStrategies:
 		"""
 		return a
 
+	def KEEP_FIRST_EMPTY(args: list[Result]) -> Result:
+		"""
+		Corresponding ``empty`` parameter for ``KEEP_FIRST`` - the "empty"
+		element should be the first element in the list, unless there is no
+		first element or the first element is ``Fail``.
+		"""
+		return (
+			args[0].val
+			if len(args) > 0 and (args[0].is_okay or args[0].is_warn)
+			else None
+		)
+
 	def KEEP_LAST(a: C, b: C) -> C:
 		"""
 		``val`` is taken from the last object in the chain. This is equivalent
@@ -450,6 +507,8 @@ class MergeStrategies:
 		:returns: The resultant ``val``
 		"""
 		return b
+
+	KEEP_LAST_EMPTY = None
 
 	def APPEND(a: C, b: C) -> C:
 		"""
@@ -467,6 +526,8 @@ class MergeStrategies:
 		except Exception:
 			(c := [a]).append(b)
 			return c
+
+	APPEND_EMPTY = []
 
 
 def merge(
@@ -491,16 +552,18 @@ def merge(
 	if a.is_okay and b.is_okay:
 		return Okay(fn(a.val, b.val))
 	elif (not a.is_fail) and (not b.is_fail):
+		print(str(a), str(b))
 		return Warn(
-			(a.warnings if not a.is_okay else [])
-			+ (b.warnings if not b.is_okay else []),
+			(a.warnings_traced if not a.is_okay else [])
+			+ (b.warnings_traced if not b.is_okay else []),
 			fn(a.val, b.val),
 		)
 	else:
 		return Fail(
-			(a.errors if a.is_fail else []) + (b.errors if b.is_fail else []),
-			(a.warnings if not a.is_okay else [])
-			+ (b.warnings if not b.is_okay else []),
+			(a.errors_traced if a.is_fail else [])
+			+ (b.errors_traced if b.is_fail else []),
+			(a.warnings_traced if not a.is_okay else [])
+			+ (b.warnings_traced if not b.is_okay else []),
 		)
 
 
@@ -523,12 +586,15 @@ def merge_all(
 	:param fn: Merge strategy (see ``merge()`` for more information)
 	:returns: The final ``Result`` of merging all elements.
 	"""
+	if callable(empty):
+		empty = empty(args)
+
 	if len(args) == 0:
 		return Okay(empty)
 	elif len(args) == 1:
-		return args[0]
+		return merge(Okay(empty), args[0], fn)
 	else:
-		res = args[0]
+		res = merge(Okay(empty), args[0], fn)
 		for r in args[1:]:
 			res = merge(res, r, fn)
 		return res

@@ -22,6 +22,8 @@ computation within ExSeOS.
 from exseos.types.Variable import Variable, UnboundVariable, VariableSet
 from exseos.types.Option import Option, Some, Nothing
 from exseos.types.Result import Result
+from exseos.ui.NullUIManager import NullUIManager
+from exseos.ui.UIManager import UIManager
 
 from abc import ABC, abstractmethod
 
@@ -40,16 +42,18 @@ def _process_stage_io(
 	:returns: The matching ``Variable`` if found, or ``Nothing`` if not.
 	"""
 
-	def __atov(a: Variable | str) -> Variable:
+	def __atov(a: Variable | str) -> Option[Variable]:
 		if type(a) is str:
-			return UnboundVariable(a)
+			return Some(UnboundVariable(a))
+		elif type(a) is Variable:
+			return Some(a)
 		else:
-			return a
+			return Nothing()
 
 	if args and len(args) > dex:
-		return Some(__atov(args[dex]))
+		return __atov(args[dex])
 	elif kwargs and i.name in kwargs.keys():
-		return Some(__atov(kwargs[i.name]))
+		return __atov(kwargs[i.name])
 	else:
 		return Nothing()
 
@@ -64,8 +68,8 @@ class Stage(ABC):
 	``Stage`` in-place.
 	"""
 
-	input_vars: tuple[UnboundVariable] = ()
-	output_vars: tuple[UnboundVariable] = ()
+	input_vars: tuple[UnboundVariable, ...] = ()
+	output_vars: tuple[UnboundVariable, ...] = ()
 
 	def __init__(
 		self,
@@ -102,7 +106,9 @@ class Stage(ABC):
 		self.__to = _to
 
 	@abstractmethod
-	def run(self, inputs: VariableSet) -> Result[Exception, Exception, tuple[Variable]]:
+	async def run(
+		self, inputs: VariableSet, ui: UIManager = NullUIManager()
+	) -> Result[Exception, Exception, tuple[Variable]]:
 		"""
 		Run this ``stage``, returning a ``Result`` containing output
 		information.

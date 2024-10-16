@@ -19,7 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from abc import ABC
 
 from exseos.types.Result import Okay, Warn, Fail
-from exseos.types import (
+from exseos.types.util import (
 	type_check,
 	common,
 	common_t,
