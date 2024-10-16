@@ -19,7 +19,7 @@ from abc import ABC
 from typing import Any, Callable, TypeVar
 
 from exseos.types.Option import Option
-from exseos.types.Variable import VariableSet
+from exseos.types.Variable import Variable, VariableSet
 
 A = TypeVar("A")
 
@@ -63,3 +63,30 @@ class LambdaExperimentConstant[A](ExperimentConstant):
 
 	def resolve(self, vars: VariableSet) -> Any:
 		return self.__fn(vars).val
+
+
+class ConstantResolutionError(Exception):
+	"""
+	Raised when an ``Experiment`` can't resolve all of its constants, possibly
+	due to conflicting requirements.
+	"""
+
+	def __init__(
+		self,
+		unresolved_constants: tuple[ExperimentConstant],
+		context: tuple[Variable],
+		note: str = "",
+	):
+		msg = (
+			"Could not resolve constants:\n"
+			+ "".join(f"  {c}\n" for c in unresolved_constants)
+			+ "\nThe following variables are in scope:\n"
+			+ "".join(f"  {v}\n" for v in context)
+			+ (f" {note}" if note else "")
+		)
+
+		super().__init__(msg)
+
+		self.unresolved_constants = unresolved_constants
+		self.context = context
+		self.note = note

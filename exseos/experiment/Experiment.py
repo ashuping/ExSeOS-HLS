@@ -28,7 +28,15 @@ from exseos.experiment.Constant import (
 )
 from exseos.experiment.optimizer.Optimizer import Optimizer, OptimizerIteration
 from exseos.types.Option import Nothing, Option, Some
-from exseos.types.Variable import Variable, VariableSet, ensure_from_name_arr
+from exseos.types.Result import Okay, Result
+from exseos.types.Variable import (
+	BoundVariable,
+	Variable,
+	VariableSet,
+	ensure_from_name_arr,
+)
+from exseos.ui.NullUIManager import NullUIManager
+from exseos.ui.UIManager import UIManager
 from exseos.workflow.Workflow import Workflow
 
 
@@ -39,11 +47,13 @@ class Experiment:
 		workflow: Workflow,
 		optimizer: Optimizer,
 		constants: tuple[ExperimentConstant],
+		ui: UIManager = NullUIManager(),
 	):
 		self.__name = name
 		self.__workflow = workflow
 		self.__optimizer = optimizer
 		self.__constants = constants
+		self.__ui = ui
 
 	@property
 	def name(self) -> str:
@@ -71,8 +81,51 @@ class Experiment:
 
 		return Experiment(**params)
 
-	async def run(self) -> "ExperimentResult":
-		pass
+	def _resolve_constants(
+		self, opt_inputs: tuple[Variable]
+	) -> Option[tuple[Variable]]:
+		unresolved_constants = self.constants
+
+		vars = opt_inputs
+
+		while unresolved_constants:
+			newly_resolved = tuple(
+				[
+					BoundVariable(c.name, c.resolve(VariableSet(vars)))
+					for c in unresolved_constants
+					if c.can_resolve(VariableSet(vars))
+				]
+			)
+
+			unresolved_constants = tuple(
+				c for c in unresolved_constants if not c.can_resolve(VariableSet(vars))
+			)
+
+			if len(newly_resolved) == 0:
+				return Nothing()  # Can't resolve all constants.
+
+			vars += newly_resolved
+
+		return Some(vars)
+
+	async def run(self) -> "Result[Exception, Exception, ExperimentResult]":
+		# iteration: int = 0
+		# history: tuple[OptimizerIteration] = {}
+		# while True:
+		# 	next_iteration_inputs = self.optimizer.next(iteration, 1, history)
+
+		# 	if len(next_iteration_inputs) == 0:
+		# 		break
+
+		# 	run_inputs = self._resolve_constants(next_iteration_inputs)
+
+		# 	if not run_inputs.has_val:
+
+		# 	run_res = await self.workflow.run(
+
+		# 	)
+
+		return Okay(None)
 
 
 class ExperimentResult:
@@ -99,11 +152,13 @@ class MakeExperiment:
 		workflow: Workflow = None,
 		optimizer: Optimizer = None,
 		constants: tuple[ExperimentConstant] = (),
+		ui: UIManager = NullUIManager(),
 	):
 		self.__name = name
 		self.__workflow = workflow
 		self.__optimizer = optimizer
 		self.__constants = constants
+		self.__ui = ui
 
 	@property
 	def name(self) -> str:
@@ -121,12 +176,17 @@ class MakeExperiment:
 	def constants(self) -> tuple[ExperimentConstant]:
 		return self.constants
 
+	@property
+	def ui(self) -> UIManager:
+		return self.__ui
+
 	def copy(self, **delta) -> "MakeExperiment":
 		params = {
 			"name": self.name,
 			"workflow": self.workflow,
 			"optimizer": self.optimizer,
 			"constants": self.constants,
+			"ui": self.ui,
 		} | delta
 
 		return MakeExperiment(**params)
@@ -179,8 +239,11 @@ class MakeExperiment:
 			+ self.constants
 		)
 
-	def optimize(self, optimizer=Optimizer) -> "MakeExperiment":
+	def optimize(self, optimizer: Optimizer) -> "MakeExperiment":
 		return self.copy(optimizer=optimizer)
+
+	def with_ui(self, ui: UIManager) -> "MakeExperiment":
+		return self.copy(ui=ui)
 
 	def __call__(self) -> Experiment:
 		if not self.workflow:
