@@ -260,9 +260,6 @@ def make_StageFromFunction(
 	inputs = tuple(args)
 	outputs = tuple(ret)
 
-	print(f"inputs: {inputs}")
-	print(f"outputs: {outputs}")
-
 	return type(
 		f"StageFromFunction_{fn.__name__}_{hash(fn)}",
 		(StageFromFunction,),

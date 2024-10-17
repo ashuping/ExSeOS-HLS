@@ -93,7 +93,6 @@ class Experiment:
 		vars = opt_inputs
 
 		while unresolved_constants:
-			print(vars)
 			newly_resolved = tuple(
 				[
 					BoundVariable(c.name, c.resolve(VariableSet(vars)))

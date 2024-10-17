@@ -1,9 +1,9 @@
-name: exseos-h
+name: exseos-h-py311
 channels:
   - conda-forge
   - nodefaults
 dependencies:
-  - python=3.12
+  - python=3.11
   - patch
   - pip
   - graphviz
@@ -12,8 +12,8 @@ dependencies:
     - hls4ml==0.8.0
     - matplotlib
     - scikit-learn
-    - tensorflow
-    - qkeras
+    - tensorflow==2.12.0
+    - qkeras==0.9.0
     - conifer
     - colorlog
     - psutil

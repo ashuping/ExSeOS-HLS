@@ -438,10 +438,7 @@ class Wiring:
 			empty=[],
 		)
 
-		print(output_bind_result)
 		status <<= output_bind_result
-
-		print(output_bind_result)
 
 		wires["outputs"] = output_bind_result.val
 

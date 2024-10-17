@@ -22,12 +22,12 @@ Exceptions (like those found in ``Result`` objects.)
 
 import traceback
 from traceback import FrameSummary, format_exception
-from typing import TypeVar, Callable
+from typing import TypeVar, Callable, Generic
 
 A: TypeVar = TypeVar("A")
 
 
-class StackTraced[A]:
+class StackTraced(Generic[A]):
 	"""
 	A ``StackTraced`` object stores stack-trace information along with another
 	object; it is commonly used to print usable stack traces for non-raised

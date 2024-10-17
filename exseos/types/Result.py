@@ -55,11 +55,13 @@ chain rather than the last.
 For a more customizeable combination operator, see the ``merge()`` function.
 """
 
+from __future__ import annotations
+
 from exseos.types.ComparableError import ComparableError
 from exseos.types.StackTraced import StackTraced
 
 from abc import ABC, abstractmethod
-from typing import TypeVar, Callable, List
+from typing import TypeVar, Callable, List, Generic
 
 A: TypeVar = TypeVar("A")
 B: TypeVar = TypeVar("B")
@@ -67,7 +69,7 @@ C: TypeVar = TypeVar("C")
 D: TypeVar = TypeVar("D")
 
 
-class Result[A, B, C](ABC):
+class Result(ABC, Generic[A, B, C]):
 	"""
 	Represents the result of a computation.
 
@@ -261,7 +263,7 @@ class Result[A, B, C](ABC):
 			return True
 
 
-class Okay[C](Result):
+class Okay(Result):
 	"""
 	Represents a computation that has succeeded without any errors or warnings.
 
@@ -323,7 +325,7 @@ class Okay[C](Result):
 		return f"Okay({repr(self.val)})"
 
 
-class Warn[B, C](Result):
+class Warn(Result):
 	"""
 	Represents a computation that encountered non-fatal errors.
 
@@ -392,7 +394,7 @@ class Warn[B, C](Result):
 		return f"Warn({self.warnings}, {self.val})"
 
 
-class Fail[A, B](Result):
+class Fail(Result):
 	"""
 	Represents a computation which failed with errors.
 

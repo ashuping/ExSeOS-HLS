@@ -26,14 +26,14 @@ from exseos.types.Result import Result, Okay, Warn, Fail, merge_all
 
 from abc import ABC, abstractmethod
 import logging
-from typing import TypeVar
+from typing import TypeVar, Generic
 
 A: TypeVar = TypeVar("A")
 
 log = logging.getLogger(__name__)
 
 
-class Variable[A](ABC):
+class Variable(ABC, Generic[A]):
 	"""
 	Stores a quantity whose value can vary from workflow to workflow,
 	controlled either statically (manually set in configuration) or
@@ -116,7 +116,7 @@ class Variable[A](ABC):
 		)
 
 
-class BoundVariable[A](Variable):
+class BoundVariable(Variable, Generic[A]):
 	"""A Variable that has already been given a value."""
 
 	def __init__(
@@ -238,7 +238,7 @@ class BoundVariable[A](Variable):
 		)
 
 
-class UnboundVariable[A](Variable):
+class UnboundVariable(Variable):
 	"""A Variable which has not yet been given a value."""
 
 	def __init__(

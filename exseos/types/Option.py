@@ -24,14 +24,14 @@ implicitly) nullable.
 
 from exseos.types.ComparableError import ComparableError
 
-from typing import TypeVar, Callable
+from typing import TypeVar, Callable, Generic
 from abc import ABC, abstractmethod
 
 A: TypeVar = TypeVar("A")
 B: TypeVar = TypeVar("B")
 
 
-class Option[A](ABC):
+class Option(ABC, Generic[A]):
 	"""
 	Represents a value that could be absent.
 
@@ -134,7 +134,7 @@ class Nothing(Option):
 		return "Nothing()"
 
 
-class Some[A](Option):
+class Some(Option):
 	"""Represents an ``Option`` that contains a concrete value."""
 
 	__match_args__ = ("val",)

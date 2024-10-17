@@ -16,7 +16,7 @@
 
 
 from abc import ABC
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, Generic
 
 from exseos.types.Option import Option
 from exseos.types.Variable import Variable, VariableSet
@@ -24,7 +24,7 @@ from exseos.types.Variable import Variable, VariableSet
 A = TypeVar("A")
 
 
-class ExperimentConstant[A](ABC):
+class ExperimentConstant(ABC, Generic[A]):
 	@property
 	def name(self) -> str: ...  # pragma: no cover
 
@@ -33,7 +33,7 @@ class ExperimentConstant[A](ABC):
 	def resolve(self, vars: VariableSet) -> A: ...  # pragma: no cover
 
 
-class BasicExperimentConstant[A](ExperimentConstant):
+class BasicExperimentConstant(ExperimentConstant):
 	def __init__(self, name: str, val: A):
 		self.__name = name
 		self.__val = val
@@ -49,7 +49,7 @@ class BasicExperimentConstant[A](ExperimentConstant):
 		return self.__val
 
 
-class LambdaExperimentConstant[A](ExperimentConstant):
+class LambdaExperimentConstant(ExperimentConstant):
 	def __init__(self, name: str, fn: Callable[[VariableSet], Option[Any]]):
 		self.__name = name
 		self.__fn = fn
