@@ -62,10 +62,7 @@ class ApplyStandardScaler(Stage):
 			X_scaled = scaler.transform(inputs.X, copy=True)
 
 			return Okay(
-				(
-					self.output_vars[0].bind(X_scaled), 
-					self.output_vars[1].bind(scaler)
-				)
+				(self.output_vars[0].bind(X_scaled), self.output_vars[1].bind(scaler))
 			)
 		except Exception as e:
 			return Fail([e])

@@ -188,6 +188,7 @@ async def test_hls4ml_tutorial():
 	end_result = await my_experiment.run()
 
 	from exseos.ui.message.UIMessage import ResultMessage
+
 	await ui.display(ResultMessage(end_result))
 
 	assert end_result.is_okay

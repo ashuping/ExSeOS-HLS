@@ -62,10 +62,7 @@ class ApplyLabelEncoder(Stage):
 			y_scaled = encoder.transform(inputs.y)
 
 			return Okay(
-				(
-					self.output_vars[0].bind(y_scaled), 
-					self.output_vars[1].bind(encoder)
-				)
+				(self.output_vars[0].bind(y_scaled), self.output_vars[1].bind(encoder))
 			)
 		except Exception as e:
 			return Fail([e])
