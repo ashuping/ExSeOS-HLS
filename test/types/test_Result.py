@@ -41,6 +41,9 @@ def test_warnings():
 	with raises(TypeError):
 		Okay(37).warnings
 
+	with raises(TypeError):
+		Okay(37).warnings_traced
+
 
 def test_errors():
 	assert ComparableError.array_encapsulate(
@@ -51,8 +54,21 @@ def test_errors():
 		Okay(37).errors
 
 	with raises(TypeError):
+		Okay(37).errors_traced
+
+	with raises(TypeError):
 		Warn([ArithmeticError(6)], 37).errors
 
+	with raises(TypeError):
+		Warn([ArithmeticError(6)], 37).errors_traced
+
+
+def test_recover():
+	recover_fn = lambda errs, warns: Warn(errs + warns, 'potato')
+
+	assert Okay(None).recover(recover_fn) == Okay(None)
+	assert Warn([ArithmeticError(6)], 'test').recover(recover_fn) == Warn([ArithmeticError(6)], 'test')
+	assert Fail([SyntaxError('oops')], [ArithmeticError(6)]).recover(recover_fn) == Warn([SyntaxError('oops'), ArithmeticError(6)], 'potato')
 
 def test_eq():
 	assert Okay(37) == Okay(37)
@@ -349,3 +365,16 @@ def test_str():
 		== "Result.Fail with the following warnings:\n    > [ArithmeticError] 6\n    > [TypeError] wow\n and the following errors:\n    > [SyntaxError] test\n    > [OSError] awa\n"
 	)
 	assert str(Fail([], [])) == "Result.Fail with no warnings and no errors"
+
+def test_repr():
+	assert repr(Okay(37)) == "Okay(37)"
+	assert repr(Warn([ArithmeticError(6), TypeError("wow")], 37)) == "Warn([ArithmeticError(6), TypeError('wow')], 37)"
+	assert (
+		repr(
+			Fail(
+				[SyntaxError("test"), OSError("awa")],
+				[ArithmeticError(6), TypeError("wow")],
+			)
+		)
+		== "Fail([SyntaxError('test'), OSError('awa')], [ArithmeticError(6), TypeError('wow')])"
+	)

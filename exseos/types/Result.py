@@ -211,7 +211,7 @@ class Result(ABC, Generic[A, B, C]):
 		:return: If this is ``Fail``, then the return value of ``f``. Otherwise,
 		    the current ``Result`` unchanged.
 		"""
-		...
+		... # pragma: no cover
 
 	def __eq__(self, other):
 		if not issubclass(type(other), Result):
@@ -448,7 +448,7 @@ class Fail(Result):
 	def recover(
 		self, f: Callable[[StackTraced(A), StackTraced(B)], Result[A, B, D]]
 	) -> Result[A, B, D]:
-		return f(self._err, self.__warn)
+		return f(self.__err, self.__warn)
 
 	def __str__(self) -> str:
 		if len(self.warnings) > 0:
