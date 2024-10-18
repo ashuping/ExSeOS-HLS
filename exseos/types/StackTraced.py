@@ -89,9 +89,28 @@ class StackTraced(Generic[A]):
 			else StackTraced(val, exclude_frames=exclude_frames)
 		)
 
+	def __eq__(self, other: "StackTraced") -> bool:
+		"""
+		Return ``True`` iff both ``StackTraced`` objects have equal values.
+
+		Note that the actual stack traces are *not* compared, so two StackTraced
+		objects constructed from equal values at different places will still
+		evaluate as equal.
+
+		:param other: ``StackTraced`` to compare against
+		:return: True iff both ``StackTraced`` objects have equal values
+		"""
+		return isinstance(other, StackTraced) and self.val == other.val
+
 	def __str__(self) -> str:
 		return "\n".join(traceback.format_list(list(self.stack_trace))) + (
-			"\n" + "".join(format_exception(self.val))
-			if issubclass(type(self.val), Exception)
-			else f"\n[{type(self.val).__name__}]: {self.val}"
+			"\n"
+			+ (
+				"".join(format_exception(self.val))
+				if issubclass(type(self.val), Exception)
+				else f"\n[{type(self.val).__name__}]: {self.val}"
+			)
 		)
+
+	def __repr__(self) -> str:
+		return f"StackTraced({repr(self.val)})"
