@@ -92,10 +92,4 @@ class ComparableError:
 		if type(self.exc) is not type(other.exc):
 			return False
 
-		if hasattr(self.exc, "args"):
-			if not hasattr(other.exc, "args"):
-				return False
-			else:
-				return self.exc.args == other.exc.args
-		else:
-			return True
+		return self.exc.args == other.exc.args
