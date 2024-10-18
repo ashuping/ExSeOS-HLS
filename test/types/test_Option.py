@@ -26,6 +26,12 @@ def test_str():
 
 	assert str(Nothing()) == "Nothing"
 
+def test_repr():
+	assert repr(Some(37)) == "Some(37)"
+	assert repr(Some("test")) == "Some('test')"
+	assert repr(Some(None)) == "Some(None)"
+
+	assert repr(Nothing()) == "Nothing()"
 
 def test_eq():
 	assert Some(37) == Some(37)
