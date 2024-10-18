@@ -16,21 +16,58 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import itertools
+from exseos.types.Result import Fail, Okay, Warn
 from exseos.types.Variable import (
+	ExplicitTypeMismatchError,
+	InferredTypeMismatchWarning,
 	UnboundVariable,
 	BoundVariable,
-	VariableSet,
-	UnboundVariableError,
-	AmbiguousVariableError,
+	Variable,
+	assert_types_match,
 	constant,
 	ensure_from_name,
 	ensure_from_name_arr,
 )
 from exseos.types.Option import Nothing, Some
-from exseos.types.Result import Okay, Warn, Fail
 
+from abc import ABC
 import pytest
-from pytest import raises
+
+
+def test_eq():
+	assert BoundVariable("x", 2) == BoundVariable("x", 2)
+	assert UnboundVariable("y") == UnboundVariable("y")
+
+	assert BoundVariable("x", 2) != UnboundVariable("x")
+
+	assert BoundVariable("x", 2, int) == BoundVariable("x", 2, int)
+	assert BoundVariable("x", 1, int) != BoundVariable("x", 1, str)
+	assert UnboundVariable("y", int) == UnboundVariable("y", int)
+	assert UnboundVariable("y", int) != UnboundVariable("y", str)
+
+	assert BoundVariable("x", 1, desc="My Test Variable") == BoundVariable(
+		"x", 1, desc="My Test Variable"
+	)
+	assert BoundVariable("x", 1, desc="My Test Variable") != BoundVariable(
+		"x", 1, desc="My Other Test Variable"
+	)
+	assert UnboundVariable("y", desc="My Test Variable") == UnboundVariable(
+		"y", desc="My Test Variable"
+	)
+	assert UnboundVariable("y", desc="My Test Variable") != UnboundVariable(
+		"y", desc="My Other Test Variable"
+	)
+
+	assert BoundVariable("x", 1) != BoundVariable("x", 2)
+
+	assert BoundVariable("x", 1, default=1) == BoundVariable("x", 1, default=1)
+	assert BoundVariable("x", 1, default=1) != BoundVariable("x", 1, default=2)
+	assert UnboundVariable("y", default="yes") == UnboundVariable("y", default="yes")
+	assert UnboundVariable("y", default="yes") != UnboundVariable("y", default="no")
+
+	assert BoundVariable("x", 2) != 2
+	assert UnboundVariable("y") != "y"
 
 
 def test_val():
@@ -112,176 +149,24 @@ def test_type_inference_uses_common_ancestors():
 	assert BoundVariable("x", TestSubclass1(), default=Some(1)).var_type == Nothing()
 
 
+def test_overbroad_type_inference():
+	class OverbroadA(ABC):
+		pass
+
+	class OverbroadB(ABC):
+		pass
+
+	b = BoundVariable("x", OverbroadA(), default=Some(OverbroadB()))
+
+	assert b.var_type == Some(ABC)
+	assert b.var_type_inferred
+
+
 @pytest.mark.parametrize(
 	"c", [1, 2, -1, None, "test", True, BoundVariable("test_var", 1)]
 )
 def test_constant(c):
 	assert constant(c) == BoundVariable(f"Constant::{c}", c)
-
-
-def test_set():
-	vs = [
-		BoundVariable("x", 1),
-		BoundVariable("y", "test"),
-		UnboundVariable("z", default=-1.22),
-	]
-
-	vset = VariableSet(vs)
-
-	assert vset.status == Okay(None)
-	assert vset.x == 1
-	assert vset.y == "test"
-	assert vset.z == -1.22
-
-
-def test_set_ambiguous():
-	vs = [
-		BoundVariable("x", 1),
-		BoundVariable("y", "test"),
-		UnboundVariable("z", default=-1.22),
-		BoundVariable("x", 2),
-	]
-
-	vset = VariableSet(vs)
-
-	expect = Warn(
-		[
-			AmbiguousVariableError(
-				"x",
-				(
-					BoundVariable("x", 1),
-					BoundVariable("x", 2),
-				),
-				"(while constructing a `VariableSet`)",
-			)
-		],
-		None,
-	)
-
-	print(f"expected: {expect}")
-	print(f"actual   : {vset.status}")
-
-	assert vset.status == expect
-
-	assert vset.y == "test"
-	assert vset.z == -1.22
-
-	# note that which variable takes precedence is undefined
-	assert vset.x == 1 or vset.x == 2
-
-
-def test_set_unbound():
-	vs = [BoundVariable("x", 1), BoundVariable("y", "test"), UnboundVariable("z")]
-
-	vset = VariableSet(vs)
-
-	with raises(UnboundVariableError):
-		vset.z
-
-
-def test_set_undefined():
-	vs = [BoundVariable("x", 1), BoundVariable("y", "test"), UnboundVariable("z")]
-
-	vset = VariableSet(vs)
-
-	with raises(AttributeError):
-		vset.potatoes
-
-
-def test_set_check():
-	vs = [
-		BoundVariable("x", 1),
-		BoundVariable("y", "test"),
-		UnboundVariable("z", default=-1.22),
-		UnboundVariable("undefined"),
-		UnboundVariable("undefined2"),
-	]
-
-	vset = VariableSet(vs)
-
-	assert vset.check("x") == Okay(None)
-	assert vset.check("x", "y") == Okay(None)
-	assert vset.check("undefined") == Fail(
-		[
-			UnboundVariableError(
-				UnboundVariable("undefined"),
-				"(while retrieving a `Variable` from a `VariableSet`)",
-			)
-		]
-	)
-
-	assert vset.check("x", "undefined") == Fail(
-		[
-			UnboundVariableError(
-				UnboundVariable("undefined"),
-				"(while retrieving a `Variable` from a `VariableSet`)",
-			)
-		]
-	)
-
-	assert vset.check("x", "undefined", "undefined2") == Fail(
-		[
-			UnboundVariableError(
-				UnboundVariable("undefined"),
-				"(while retrieving a `Variable` from a `VariableSet`)",
-			),
-			UnboundVariableError(
-				UnboundVariable("undefined2"),
-				"(while retrieving a `Variable` from a `VariableSet`)",
-			),
-		]
-	)
-
-	assert vset.check("not in set") == Fail(
-		[AttributeError("No variable named not in set in this `VariableSet`!")]
-	)
-
-	assert vset.check("not in set", "undefined", "undefined2") == Fail(
-		[
-			AttributeError("No variable named not in set in this `VariableSet`!"),
-			UnboundVariableError(
-				UnboundVariable("undefined"),
-				"(while retrieving a `Variable` from a `VariableSet`)",
-			),
-			UnboundVariableError(
-				UnboundVariable("undefined2"),
-				"(while retrieving a `Variable` from a `VariableSet`)",
-			),
-		]
-	)
-
-
-def test_set_check_all():
-	vs_good = [
-		BoundVariable("x", 1),
-		BoundVariable("y", "test"),
-		UnboundVariable("z", default=-1.22),
-	]
-
-	vs_bad = [
-		BoundVariable("x", 1),
-		BoundVariable("y", "test"),
-		UnboundVariable("z", default=-1.22),
-		UnboundVariable("undefined"),
-		UnboundVariable("undefined2"),
-	]
-
-	vset_good = VariableSet(vs_good)
-	vset_bad = VariableSet(vs_bad)
-
-	assert vset_good.check_all() == Okay(None)
-	assert vset_bad.check_all() == Fail(
-		[
-			UnboundVariableError(
-				UnboundVariable("undefined"),
-				"(while retrieving a `Variable` from a `VariableSet`)",
-			),
-			UnboundVariableError(
-				UnboundVariable("undefined2"),
-				"(while retrieving a `Variable` from a `VariableSet`)",
-			),
-		]
-	)
 
 
 @pytest.mark.parametrize("name", ["test", "a", "b", "name with spaces"])
@@ -316,3 +201,83 @@ def test_ensure_from_name_arr():
 		UnboundVariable("b", int, "description", default=0),
 		UnboundVariable("name with spaces"),
 	]
+
+
+tm_base_vars_explicit: tuple[Variable] = (
+	UnboundVariable("x", int),
+	UnboundVariable("φ", int),
+	BoundVariable("σ", 1, var_type=int),
+)
+
+tm_base_vars_implicit: tuple[Variable] = (
+	BoundVariable("ψ", 1),
+	UnboundVariable("y", default=1),
+)
+
+tm_mismatched_vars_explicit: tuple[Variable] = (
+	UnboundVariable("x", str),
+	UnboundVariable("φ", bool),
+	BoundVariable("σ", Exception(), var_type=Exception),
+)
+
+tm_mismatched_vars_implicit: tuple[Variable] = (
+	BoundVariable("ψ", "oops"),
+	UnboundVariable("y", default=False),
+)
+
+tm_ambiguous_vars: tuple[Variable] = (
+	UnboundVariable("τ"),
+	BoundVariable("η", 1.0, default="whoops this isn't a float"),
+)
+
+
+test_assert_types_match_params = itertools.product(
+	itself := tm_base_vars_explicit + tm_base_vars_implicit, itself
+)
+
+
+@pytest.mark.parametrize(("v1", "v2"), test_assert_types_match_params)
+def test_assert_types_match(v1, v2):
+	assert assert_types_match(v1, v2, True) == Okay(None)
+	assert assert_types_match(v1, v2, False) == Okay(None)
+
+
+test_assert_types_inferred_mismatch_params = itertools.product(
+	tm_base_vars_explicit + tm_base_vars_implicit, tm_mismatched_vars_implicit
+)
+
+
+@pytest.mark.parametrize(("v1", "v2"), test_assert_types_inferred_mismatch_params)
+def test_assert_types_inferred_mismatch(v1, v2):
+	assert assert_types_match(v1, v2, True) == Warn(
+		[InferredTypeMismatchWarning(v1, v2)], None
+	)
+
+	assert assert_types_match(v1, v2, False) == Warn(
+		[InferredTypeMismatchWarning(v1, v2)], None
+	)
+
+
+test_assert_types_explicit_mismatch_params = itertools.product(
+	tm_base_vars_explicit, tm_mismatched_vars_explicit
+)
+
+
+@pytest.mark.parametrize(("v1", "v2"), test_assert_types_explicit_mismatch_params)
+def test_assert_types_explicit_mismatch(v1, v2):
+	assert assert_types_match(v1, v2, True) == Fail([ExplicitTypeMismatchError(v1, v2)])
+
+	assert assert_types_match(v1, v2, False) == Warn(
+		[ExplicitTypeMismatchError(v1, v2)], None
+	)
+
+
+test_assert_types_explicit_ambiguous_params = itertools.product(
+	tm_base_vars_explicit + tm_base_vars_implicit, tm_ambiguous_vars
+)
+
+
+@pytest.mark.parametrize(("v1", "v2"), test_assert_types_explicit_ambiguous_params)
+def test_assert_types_ambiguous(v1, v2):
+	assert assert_types_match(v1, v2, True) == Okay(None)
+	assert assert_types_match(v1, v2, False) == Okay(None)

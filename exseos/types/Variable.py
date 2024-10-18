@@ -402,10 +402,8 @@ class InferredTypeMismatchWarning(Warning):
 
 		msg = (
 			f"{type(v1).__name__} {v1.name} has {v1_type}, "
-			+ f"but {type(v2).__name} {v2.name} has {v2_type}!"
-			+ f" {note}"
-			if note
-			else ""
+			+ f"but {type(v2).__name__} {v2.name} has {v2_type}!"
+			+ (f" {note}" if note else "")
 		)
 
 		super().__init__(msg)
@@ -436,10 +434,8 @@ class ExplicitTypeMismatchError(Exception):
 
 		msg = (
 			f"{type(v1).__name__} {v1.name} has {v1_type}, "
-			+ f"but {type(v2).__name} {v2.name} has {v2_type}!"
-			+ f" {note}"
-			if note
-			else ""
+			+ f"but {type(v2).__name__} {v2.name} has {v2_type}!"
+			+ (f" {note}" if note else "")
 		)
 
 		super().__init__(msg)
@@ -693,7 +689,11 @@ def assert_types_match(
 	if v1.var_type == Nothing() or v2.var_type == Nothing():
 		return Okay(None)
 
-	if issubclass(v2.var_type.val, v1.var_type.val):
+	if issubclass(v2.var_type.val, v1.var_type.val) and not (
+		# Special case: bools are apparently a subclass of int in python.
+		# We don't want that behavior here.
+		v2.var_type.val is bool and v1.var_type.val is int
+	):
 		return Okay(None)
 
 	if v1.var_type_inferred or v2.var_type_inferred:
