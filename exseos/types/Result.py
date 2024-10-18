@@ -211,7 +211,7 @@ class Result(ABC, Generic[A, B, C]):
 		:return: If this is ``Fail``, then the return value of ``f``. Otherwise,
 		    the current ``Result`` unchanged.
 		"""
-		... # pragma: no cover
+		...  # pragma: no cover
 
 	def __eq__(self, other):
 		if not issubclass(type(other), Result):

@@ -64,11 +64,16 @@ def test_errors():
 
 
 def test_recover():
-	recover_fn = lambda errs, warns: Warn(errs + warns, 'potato')
+	recover_fn = lambda errs, warns: Warn(errs + warns, "potato")
 
 	assert Okay(None).recover(recover_fn) == Okay(None)
-	assert Warn([ArithmeticError(6)], 'test').recover(recover_fn) == Warn([ArithmeticError(6)], 'test')
-	assert Fail([SyntaxError('oops')], [ArithmeticError(6)]).recover(recover_fn) == Warn([SyntaxError('oops'), ArithmeticError(6)], 'potato')
+	assert Warn([ArithmeticError(6)], "test").recover(recover_fn) == Warn(
+		[ArithmeticError(6)], "test"
+	)
+	assert Fail([SyntaxError("oops")], [ArithmeticError(6)]).recover(
+		recover_fn
+	) == Warn([SyntaxError("oops"), ArithmeticError(6)], "potato")
+
 
 def test_eq():
 	assert Okay(37) == Okay(37)
@@ -366,9 +371,13 @@ def test_str():
 	)
 	assert str(Fail([], [])) == "Result.Fail with no warnings and no errors"
 
+
 def test_repr():
 	assert repr(Okay(37)) == "Okay(37)"
-	assert repr(Warn([ArithmeticError(6), TypeError("wow")], 37)) == "Warn([ArithmeticError(6), TypeError('wow')], 37)"
+	assert (
+		repr(Warn([ArithmeticError(6), TypeError("wow")], 37))
+		== "Warn([ArithmeticError(6), TypeError('wow')], 37)"
+	)
 	assert (
 		repr(
 			Fail(
