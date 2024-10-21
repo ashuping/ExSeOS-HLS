@@ -136,8 +136,10 @@ class WiredStageVariable:
 		Return any type mismatch issues between the local and wire variables.
 		"""
 		if not self.has_wire:
+			print('hasn\'t wire')
 			return Okay(None)
 
+		print('has wire')
 		return var_assert_types_match(self.local_var, self.wire_var.val)
 
 	def __eq__(self, other: "WiredStageVariable") -> bool:
