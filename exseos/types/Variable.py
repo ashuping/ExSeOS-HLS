@@ -26,6 +26,7 @@ from exseos.types.Result import Result, Okay, Warn, Fail, merge_all
 
 from abc import ABC, abstractmethod
 import logging
+import numpy as np
 from typing import TypeVar, Generic
 
 A: TypeVar = TypeVar("A")
@@ -104,12 +105,36 @@ class Variable(ABC, Generic[A]):
 		if not issubclass(type(other), Variable):
 			return False
 
+		if self.is_bound:
+			if not other.is_bound:
+				return False
+			
+			if type(self.val.val) is not type(other.val.val):
+				return False
+
+			# Some types must be handled specially
+			match type(self.val.val):
+				case np.ndarray:
+					# Need to check dimensions and dtype
+					if self.val.val.shape != other.val.val.shape:
+						return False
+
+					if self.val.val.dtype != other.val.val.dtype:
+						return False
+
+					# Numpy arrays have to have `.all()` called at the end
+					if not (self.val.val == other.val.val).all():
+						return False
+				case _:
+					# All other types are compared directly
+					if self.val.val != other.val.val:
+						return False
+
 		return all(
 			[
 				self.name == other.name,
 				self.is_bound == other.is_bound,
 				self.desc == other.desc,
-				(self.val == other.val) if self.is_bound else True,
 				self.var_type == other.var_type,
 				self.default == other.default,
 			]

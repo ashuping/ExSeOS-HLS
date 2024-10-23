@@ -32,6 +32,7 @@ from exseos.types.Variable import (
 from exseos.types.Option import Nothing, Some
 
 from abc import ABC
+import numpy as np
 import pytest
 
 
@@ -42,6 +43,7 @@ def test_eq():
 	assert BoundVariable("x", 2) != UnboundVariable("x")
 
 	assert BoundVariable("x", 2, int) == BoundVariable("x", 2, int)
+	assert BoundVariable("x", 1, int) != BoundVariable("x", '1', str)
 	assert BoundVariable("x", 1, int) != BoundVariable("x", 1, str)
 	assert UnboundVariable("y", int) == UnboundVariable("y", int)
 	assert UnboundVariable("y", int) != UnboundVariable("y", str)
@@ -68,6 +70,13 @@ def test_eq():
 
 	assert BoundVariable("x", 2) != 2
 	assert UnboundVariable("y") != "y"
+
+
+def test_numpy_arr_eq():
+	assert BoundVariable('a', np.array([1, 2, 3])) == BoundVariable('a', np.array([1, 2, 3]))
+	assert BoundVariable('a', np.array([1, 2, 3])) != BoundVariable('a', np.array([3, 2, 1]))
+	assert BoundVariable('a', np.array([1, 2, 3])) != BoundVariable('a', np.array([1, 2]))
+	assert BoundVariable('a', np.array([1, 2, 3])) != BoundVariable('a', np.array(['1', '2', '3']))
 
 
 def test_val():
