@@ -301,31 +301,29 @@ def test_eq(a, b):
 
 assert_types_match_inputs = itertools.permutations(
 	(
-		UnboundVariable('a', var_type=int),
-		UnboundVariable('ξ', var_type=str),
-		UnboundVariable('ι', var_type=bool),
-		UnboundVariable('π', default=1),
-		UnboundVariable('σ', default=False),
-		UnboundVariable('ω'),
-		BoundVariable('aa', 1, var_type=int),
-		BoundVariable('ξξ', 'beep!', var_type=str),
-		BoundVariable('ιι', True, var_type=bool),
+		UnboundVariable("a", var_type=int),
+		UnboundVariable("ξ", var_type=str),
+		UnboundVariable("ι", var_type=bool),
+		UnboundVariable("π", default=1),
+		UnboundVariable("σ", default=False),
+		UnboundVariable("ω"),
+		BoundVariable("aa", 1, var_type=int),
+		BoundVariable("ξξ", "beep!", var_type=str),
+		BoundVariable("ιι", True, var_type=bool),
 	),
-	2
+	2,
 )
 
-@pytest.mark.parametrize(['a', 'b'], assert_types_match_inputs)
+
+@pytest.mark.parametrize(["a", "b"], assert_types_match_inputs)
 def test_assert_types_match(a: Variable, b: Variable):
 	wsv = WiredStageVariable(Some(a), b)
 
-	if (
-		(a.var_type_inferred or a.var_type == Nothing())
-		and not (b.var_type_inferred or b.var_type == Nothing())
+	if (a.var_type_inferred or a.var_type == Nothing()) and not (
+		b.var_type_inferred or b.var_type == Nothing()
 	):
 		# Spread inferred type to wire-var
-		a = a.copy(
-			var_type=b.var_type
-		)
+		a = a.copy(var_type=b.var_type)
 
 	assert wsv.assert_types_match() == var_assert_types_match(b, a)
 

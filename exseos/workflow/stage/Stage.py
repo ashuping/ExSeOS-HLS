@@ -26,6 +26,13 @@ from exseos.ui.NullUIManager import NullUIManager
 from exseos.ui.UIManager import UIManager
 
 from abc import ABC, abstractmethod
+import enum
+
+
+class StageFlags(enum.Flag):
+	NO_FLAGS = 0
+	IMPLICIT_BINDING = enum.auto()
+	RUN_ALWAYS = enum.auto()
 
 
 def _process_stage_io(
@@ -75,6 +82,9 @@ class Stage(ABC):
 		self,
 		*args: list[str | Variable],
 		_to: tuple[list[str | Variable], dict[str, str | Variable]] = ([], {}),
+		_depends: tuple[str] = (),
+		_provides: tuple[str] = (),
+		_flags: StageFlags = StageFlags.NO_FLAGS,
 		**kwargs: dict[str, str | Variable],
 	):
 		"""
@@ -104,6 +114,9 @@ class Stage(ABC):
 		self.__args = tuple(args)
 		self.__kwargs = kwargs
 		self.__to = _to
+		self.__depends = _depends
+		self.__provides = _provides
+		self.__flags = _flags
 
 	@abstractmethod
 	async def run(
@@ -120,8 +133,22 @@ class Stage(ABC):
 		"""
 		...  # pragma: no cover
 
+	def copy(self, **delta) -> "Stage":
+		changes = (
+			{
+				"_to": self.__to,
+				"_depends": self.__depends,
+				"_provides": self.__provides,
+				"_flags": self.__flags,
+			}
+			| self.__kwargs
+			| delta
+		)
+
+		return type(self)(*self.__args, **changes)
+
 	@property
-	def _input_bindings(self) -> tuple[Variable, Option[Variable]]:
+	def _input_bindings(self) -> tuple[tuple[Variable, Option[Variable]], ...]:
 		"""
 		A tuple of input bindings for this stage. Used for internal wiring.
 
@@ -132,7 +159,7 @@ class Stage(ABC):
 		return self.__inputs
 
 	@property
-	def _output_bindings(self) -> tuple[Variable, Option[Variable]]:
+	def _output_bindings(self) -> tuple[tuple[Variable, Option[Variable]], ...]:
 		"""
 		A tuple of output bindings for this stage. Used for internal wiring.
 
@@ -150,7 +177,35 @@ class Stage(ABC):
 
 		:meta private:
 		"""
-		...
+		return StageFlags.IMPLICIT_BINDING in self.__flags
+
+	@property
+	def _is_always_run(self) -> bool:
+		"""
+		``True`` iff the stage is marked as always-run. Used for internal
+		wiring.
+
+		:meta private:
+		"""
+		return StageFlags.RUN_ALWAYS in self.__flags
+
+	@property
+	def _dependencies(self) -> tuple[str, ...]:
+		"""
+		A list of dependencies needed by this stage.
+
+		:meta private:
+		"""
+		return self.__depends
+
+	@property
+	def _providers(self) -> tuple[str, ...]:
+		"""
+		A list of dependencies provided by this stage.
+
+		:meta private:
+		"""
+		return self.__provides
 
 	def to(self, *args, **kwargs) -> "Stage":
 		"""
@@ -162,7 +217,7 @@ class Stage(ABC):
 		"""
 		_to = (args, kwargs)
 
-		return type(self)(_to=_to, *self.__args, **self.__kwargs)
+		return self.copy(_to=_to)
 
 	def depends(self, *args: tuple[str]) -> "Stage":
 		"""
@@ -182,7 +237,7 @@ class Stage(ABC):
 		    ``Stage`` needs.
 		:returns: A ``Stage`` with the requested dependencies added.
 		"""
-		...
+		return self.copy(_depends=(self.__depends + args))
 
 	def provides(self, *args: tuple[str]) -> "Stage":
 		"""
@@ -195,7 +250,7 @@ class Stage(ABC):
 		    ``Stage`` provides.
 		:returns: A ``Stage`` with the requested dependencies added.
 		"""
-		...
+		return self.copy(_provides=(self.__provides + args))
 
 	def bind_implicitly(self) -> "Stage":
 		"""
@@ -208,9 +263,9 @@ class Stage(ABC):
 
 		:returns: A ``Stage`` marked as implicit-binding
 		"""
-		...
+		return self.copy(_flags=(self.__flags | StageFlags.IMPLICIT_BINDING))
 
-	def always(self) -> "Stage":
+	def always_run(self) -> "Stage":
 		"""
 		Mark this stage as 'always-run.' Normally, the result of a ``Stage`` is
 		cached for future stages unless its inputs change. This directive
@@ -219,4 +274,4 @@ class Stage(ABC):
 
 		:returns: This ``Stage`` marked as always-run
 		"""
-		...
+		return self.copy(_flags=(self.__flags | StageFlags.RUN_ALWAYS))

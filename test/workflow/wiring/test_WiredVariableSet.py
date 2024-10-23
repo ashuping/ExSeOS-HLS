@@ -65,12 +65,14 @@ wired_variables = (
 )
 
 
-def test_vars():
+def test_eq():
 	assert WiredVariableSet(wired_variables) == WiredVariableSet(wired_variables)
 	assert WiredVariableSet(wired_variables) != WiredVariableSet(wired_variables[1:])
 	assert WiredVariableSet(wired_variables) != WiredVariableSet(
 		reversed(wired_variables)
 	)
+
+	assert WiredVariableSet(wired_variables) != wired_variables
 
 
 def test_get_by_local():
