@@ -108,7 +108,7 @@ class Variable(ABC, Generic[A]):
 		if self.is_bound:
 			if not other.is_bound:
 				return False
-			
+
 			if type(self.val.val) is not type(other.val.val):
 				return False
 
