@@ -24,7 +24,7 @@ from sklearn.preprocessing import LabelEncoder
 
 class ApplyLabelEncoder(Stage):
 	input_vars = (
-		UnboundVariable("y", np.array, "The labels to encode."),
+		UnboundVariable("y", np.ndarray, "The labels to encode."),
 		UnboundVariable(
 			"encoder_to_use",
 			LabelEncoder,
@@ -35,7 +35,7 @@ class ApplyLabelEncoder(Stage):
 		),
 	)
 	output_vars = (
-		UnboundVariable("y_encoded", np.array, "y encoded by encoder_to_use"),
+		UnboundVariable("y_encoded", np.ndarray, "y encoded by encoder_to_use"),
 		UnboundVariable(
 			"trained_encoder",
 			LabelEncoder,
@@ -47,7 +47,7 @@ class ApplyLabelEncoder(Stage):
 		),
 	)
 
-	async def run(self, inputs: VariableSet, _):
+	async def run(self, inputs: VariableSet, _=None):
 		stat = inputs.check("y")
 		if stat.is_fail:
 			return stat
@@ -57,7 +57,7 @@ class ApplyLabelEncoder(Stage):
 				encoder: LabelEncoder = LabelEncoder()
 				encoder.fit(inputs.y)
 			else:
-				encoder: LabelEncoder = inputs.scaler_to_use
+				encoder: LabelEncoder = inputs.encoder_to_use
 
 			y_scaled = encoder.transform(inputs.y)
 
