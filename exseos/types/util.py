@@ -80,7 +80,7 @@ class BroadCommonTypeWarning(Exception):
 		)
 
 		super().__init__(
-			f'Types {type_str} only share the broad common type `{common.__name__}`.{(" " + note) if note else ""}'
+			f"Types {type_str} only share the broad common type `{common.__name__}`.{(' ' + note) if note else ''}"
 		)
 
 		self.types = types
@@ -112,7 +112,7 @@ class NoCommonTypeError(Exception):
 		)
 
 		super().__init__(
-			f'Types {type_str} do not share a common type.{(" " + note) if note else ""}'
+			f"Types {type_str} do not share a common type.{(' ' + note) if note else ''}"
 		)
 
 		self.types = types
