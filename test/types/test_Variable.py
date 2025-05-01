@@ -298,3 +298,24 @@ test_assert_types_explicit_ambiguous_params = itertools.product(
 def test_assert_types_ambiguous(v1, v2):
 	assert assert_types_match(v1, v2, True) == Okay(None)
 	assert assert_types_match(v1, v2, False) == Okay(None)
+
+
+@pytest.mark.parametrize(
+	("v", "exp"),
+	(
+		(  # Basic test with most optional features off
+			UnboundVariable("φ"),
+			"UnboundVariable φ",
+		),
+		(  # Test with type and default
+			UnboundVariable("test", bool, default=False),
+			"UnboundVariable[bool] test (default False)",
+		),
+		(  # BoundVariable test with compound type
+			BoundVariable("test2", 1, str | int),
+			"BoundVariable[str | int] test2 = 1",
+		),
+	),
+)
+def test_str(v, exp):
+	assert str(v) == exp

@@ -241,9 +241,11 @@ class BoundVariable(Variable, Generic[A]):
 		return "".join(
 			[
 				"BoundVariable",
-				f"[{self.var_type.val.__name__}]" if self.var_type != Nothing() else "",
+				f"[{_type_name(self.var_type.val)}]"
+				if self.var_type != Nothing()
+				else "",
 				f" {self.name}",
-				f" = {self.val}",
+				f" = {self.val.val}",
 				f" (default {self.default.val})" if self.default != Nothing() else "",
 				f": {self.desc.val}" if self.desc != Nothing() else "",
 			]
@@ -339,7 +341,9 @@ class UnboundVariable(Variable):
 		return "".join(
 			[
 				"UnboundVariable",
-				f"[{self.var_type.val.__name__}]" if self.var_type != Nothing() else "",
+				f"[{_type_name(self.var_type.val)}]"
+				if self.var_type != Nothing()
+				else "",
 				f" {self.name}",
 				f" (default {self.default.val})" if self.default != Nothing() else "",
 				f": {self.desc.val}" if self.desc != Nothing() else "",
@@ -734,3 +738,20 @@ def constant(val: any) -> BoundVariable:
 	Convenience function to create a ``BoundVariable`` from a constant value.
 	"""
 	return BoundVariable(f"Constant::{val}", val)
+
+
+def _type_name(to_name: any) -> str:
+	"""
+	Extract a human-friendly name from a type.
+
+	Calling str() on a type usually generates something like "<class
+	'TypeName'>", whereas we want just "TypeName". To get that, we access the
+	``__name__`` property. However, ``__name__`` doesn't exist for non-types,
+	and confusingly, this *includes* ``types.UnionType``, which gets stored when
+	the user defines their type as a union (e.g. ``str|int``). Thus, we need to
+	check for and handle this.
+	"""
+	if isinstance(to_name, type):
+		return to_name.__name__
+	else:
+		return str(to_name)
